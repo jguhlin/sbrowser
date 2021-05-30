@@ -1,0 +1,13 @@
+[package]
+name = "sbrowser"
+version = "0.1.0"
+authors = ["jguhlin <joseph.guhlin@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = { version = "0.5.0" }
+bevy_egui = "0.5.0"
+bevy-inspector-egui = "0.5.1"
+bevy_prototype_lyon = "0.3.1"
