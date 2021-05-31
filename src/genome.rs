@@ -13,7 +13,7 @@ pub struct Gene {
 pub fn get_genome() -> Genome {
 
     // let genes = (0..1000).into_iter().map(|pos| Gene { start: pos * 1000, end: (pos * 1000) + 4096} ).collect::<Vec<Gene>>();
-    let genes = (0..2).into_iter().map(|pos| Gene { start: pos * 1000, end: (pos * 1000) + 4096} ).collect::<Vec<Gene>>();
+    let genes = (0..20).into_iter().map(|pos| Gene { start: pos * 10000, end: (pos * 10000) + 2048} ).collect::<Vec<Gene>>();
 
     Genome {
         length: 5 * 1024 * 1024,
