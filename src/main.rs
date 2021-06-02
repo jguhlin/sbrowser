@@ -68,10 +68,12 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
     commands.spawn_bundle(GeometryBuilder::build_as(
         &shape,
         ShapeColors::outlined(Color::TEAL, Color::BLACK),
+        DrawMode::Fill(FillOptions::default()),
+        /*
         DrawMode::Outlined {
             fill_options: FillOptions::default(),
             outline_options: StrokeOptions::default().with_line_width(10.0),
-        },
+        }, */
         Transform::default(),
     )).insert(Chromosome); 
 
@@ -80,7 +82,7 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
         let width = (gene.end - gene.start) as f32 / zf;
 
         let shape = shapes::Rectangle {
-            width: 4.0,
+            width: width,
             height: 10.0,
         //    origin:  shapes::RectangleOrigin::TopLeft,
             ..shapes::Rectangle::default()
@@ -92,7 +94,7 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
 //        let transform = Transform::default();
 
         let coords = calc_coords(&genome, zf, gene);
-        // println!("{:#?}", coords);
+        println!("{:#?}", coords);
 
 //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
         let transform = Transform::from_translation(coords);
@@ -100,10 +102,11 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
         commands.spawn_bundle(GeometryBuilder::build_as(
             &shape,
             ShapeColors::outlined(Color::RED, Color::BLACK),
-            DrawMode::Outlined {
+            DrawMode::Fill(FillOptions::default()),
+            /*DrawMode::Outlined {
                 fill_options: FillOptions::default(),
                 outline_options: StrokeOptions::default().with_line_width(1.0),
-            },
+            },*/
             transform,
         )); 
     
@@ -131,16 +134,17 @@ fn setup(mut commands: Commands) {
 }
 
 fn calc_coords(genome: &Genome, zf: f32, gene: &Gene) -> Vec3 {
-    let width = genome.length as f32 / zf;
+    let width = genome.length as f32;
 
     let zero = -width/2.0;
 
-    let start_loc = zero + (gene.start as f32 / zf);
-    let end_loc = zero + (gene.end as f32 / zf);
+    let start_loc = zero + (gene.start as f32);
+//    let end_loc = zero + (gene.end as f32 / zf);
 
-    let center = start_loc + ((gene.end - gene.end) as f32 / 2.0);
+    let center = start_loc + ((gene.end - gene.start) as f32 / 2.0);
 
-    Vec3::new(center, -50.0, 1.0)
+    Vec3::new(center / zf, -50.0, 1.0)
+//    Vec3::new(zero, -50.0, 1.0)
 }
 
 fn camera_move(
@@ -187,7 +191,8 @@ fn mouse_scroll(
 
     for event in mouse_wheel_events.iter() {
         ui_setting.zoom_factor + event.y;
-        transform.scale += -event.y * Vec3::new(0.01, 0.01, 0.0);
+        // transform.scale += -event.y * Vec3::new(0.01, 0.00, 0.0);
+        transform.scale.x += -event.y * 0.01 * transform.scale.x;
     }
 
     /*
