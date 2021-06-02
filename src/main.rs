@@ -173,6 +173,7 @@ fn camera_move(
         }
     }
 }
+
 fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     time: Res<Time>,
