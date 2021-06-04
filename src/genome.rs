@@ -1,6 +1,12 @@
 // Placeholder
 
+
 pub struct Genome {
+    pub chromosomes: Vec<Chromosome>,
+}
+
+#[derive(Clone)]
+pub struct Chromosome {
     pub length: usize,
     pub genes: Vec<Gene>,
 }
@@ -24,7 +30,10 @@ pub fn get_genome() -> Genome {
     ];
 
     Genome {
-        length: 1 * 1024 * 1024, // 1Mbp genome
-        genes,
+        chromosomes: vec![
+            Chromosome {
+                length: 1 * 1024 * 1024, // 1Mbp genome
+                genes,
+            }],
     }
 }

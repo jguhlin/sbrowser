@@ -3,6 +3,8 @@ use bevy::{
     input::mouse::MouseWheel,
 };
 
+use structs::*;
+
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_inspector_egui::Inspectable;
 use bevy_prototype_lyon::prelude::*;
@@ -10,12 +12,12 @@ use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod genome;
+mod hover;
+mod structs;
 
+use crate::structs::*;
 use crate::genome::*;
-
-struct UISetting {
-    zoom_factor: f32,
-}
+use crate::hover::*;
 
 fn main() {
 
@@ -24,94 +26,86 @@ fn main() {
     App::build()
         .insert_resource(Msaa { samples: 8 })
         .insert_resource(genome)
-        .insert_resource(UISetting { zoom_factor: 1024.0 })
+        .insert_resource(UISetting::default())
         .add_plugins(DefaultPlugins)
-        .add_plugin(WorldInspectorPlugin::new())
+        .add_plugin(HoverPlugin)
         .add_plugin(ShapePlugin)
+
+        .add_plugin(WorldInspectorPlugin::new())
+        // .add_plugin(InspectorPlugin::<Hoverable>::new())
+        
         .add_startup_system(setup.system())
         .add_startup_system(draw_chromosome.system())
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
+        .add_system(hover_highlight.system())
         // .add_system(zoom_chromosome.system())
         .run();
 }
 
 #[derive(Default)]
 pub struct Camera;
-pub struct Chromosome;
-
-fn zoom_chromosome(mut commands: Commands, genome: Res<Genome>, 
-    mut query: Query<(&Chromosome, &mut Transform)>,
-    ui_settings: Res<UISetting>, // TODO: Should be an event
-) {
-    if !ui_settings.is_changed() {
-        return
-    }
-
-    for (_camera, mut transform) in query.iter_mut() {
-        println!("Running");
-        transform.scale += Vec3::new(0.01, 0.01, 0.0);
-    }
-}
 
 fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
-    let zf = ui_settings.zoom_factor;
-    let width = genome.length as f32 / zf; // 1024 bp per pixel
 
-    let shape = shapes::Rectangle {
-        width: width,
-        height: 20.0,
-//        origin:  shapes::RectangleOrigin::TopLeft,
-        ..shapes::Rectangle::default()
-    };
-
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        ShapeColors::outlined(Color::TEAL, Color::BLACK),
-        DrawMode::Fill(FillOptions::default()),
-        /*
-        DrawMode::Outlined {
-            fill_options: FillOptions::default(),
-            outline_options: StrokeOptions::default().with_line_width(10.0),
-        }, */
-        Transform::default(),
-    )).insert(Chromosome); 
-
-    for gene in &genome.genes {
-
-        let width = (gene.end - gene.start) as f32 / zf;
+    for chr in &genome.chromosomes {
+        let zf = ui_settings.zoom_factor;
+        let width = chr.length as f32 / zf; // 1024 bp per pixel
 
         let shape = shapes::Rectangle {
             width: width,
-            height: 10.0,
-        //    origin:  shapes::RectangleOrigin::TopLeft,
+            height: 20.0,
+    //        origin:  shapes::RectangleOrigin::TopLeft,
             ..shapes::Rectangle::default()
         };
 
-//        println!("{}", gene.start as f32 / zf);
-        let start = gene.start as f32 / zf;
-//        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
-//        let transform = Transform::default();
-
-        let coords = calc_coords(&genome, zf, gene);
-        println!("{:#?}", coords);
-
-//        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
-        let transform = Transform::from_translation(coords);
-
         commands.spawn_bundle(GeometryBuilder::build_as(
             &shape,
-            ShapeColors::outlined(Color::RED, Color::BLACK),
+            ShapeColors::outlined(Color::TEAL, Color::BLACK),
             DrawMode::Fill(FillOptions::default()),
-            /*DrawMode::Outlined {
+            /*
+            DrawMode::Outlined {
                 fill_options: FillOptions::default(),
-                outline_options: StrokeOptions::default().with_line_width(1.0),
-            },*/
-            transform,
-        )); 
-    
-    }
+                outline_options: StrokeOptions::default().with_line_width(10.0),
+            }, */
+            Transform::default(),
+        )).insert(chr.clone()).insert(Hoverable { height: 20.0, width: width, ..Default::default() });
 
+        for gene in &chr.genes {
+
+            let width = (gene.end - gene.start) as f32 / zf;
+
+            let shape = shapes::Rectangle {
+                width: width,
+                height: 10.0,
+            //    origin:  shapes::RectangleOrigin::TopLeft,
+                ..shapes::Rectangle::default()
+            };
+
+    //        println!("{}", gene.start as f32 / zf);
+            let start = gene.start as f32 / zf;
+    //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
+    //        let transform = Transform::default();
+
+            let coords = calc_coords(&chr, zf, gene);
+            println!("{:#?}", coords);
+
+    //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
+            let transform = Transform::from_translation(coords);
+
+            commands.spawn_bundle(GeometryBuilder::build_as(
+                &shape,
+                ShapeColors::outlined(Color::RED, Color::BLACK),
+                DrawMode::Fill(FillOptions::default()),
+                /*DrawMode::Outlined {
+                    fill_options: FillOptions::default(),
+                    outline_options: StrokeOptions::default().with_line_width(1.0),
+                },*/
+                transform,
+            )).insert(Hoverable{ height: 10.0, width: width, ..Default::default() });
+        
+        }
+    }
 }
 
 fn setup(mut commands: Commands) {
@@ -133,8 +127,8 @@ fn setup(mut commands: Commands) {
     )); */
 }
 
-fn calc_coords(genome: &Genome, zf: f32, gene: &Gene) -> Vec3 {
-    let width = genome.length as f32;
+fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
+    let width = chr.length as f32;
 
     let zero = -width/2.0;
 
@@ -218,4 +212,40 @@ fn mouse_scroll(
             transform.translation += velocity * time.delta_seconds() * 100.0
         } 
     } */
+}
+
+pub struct Highlight;
+
+fn hover_highlight(mut commands: Commands, mut q: Query<(Entity, &mut Hoverable, &mut ShapeColors, &Transform), (Changed<Hoverable>)>) {
+    for (e, mut hov, mut sc, transform) in q.iter_mut() {
+        if hov.changed && hov.is {
+            // Display a highlight
+
+            let shape = shapes::Rectangle {
+                width: hov.width,
+                height: hov.height,
+                ..shapes::Rectangle::default()
+            };
+
+            let mut transform = transform.clone();
+            transform.translation.z = 2.0;
+
+            let highlight = commands.spawn_bundle(GeometryBuilder::build_as(
+                &shape,
+                ShapeColors::outlined(Color::YELLOW, Color::YELLOW),
+                DrawMode::Fill(FillOptions::default()),
+                transform,
+            )).insert(Highlight).id();
+
+            hov.highlight = Some(highlight);
+            hov.changed = false;
+        }
+
+        if hov.changed && !hov.is {
+            commands.entity(hov.highlight.take().unwrap()).despawn();
+
+            hov.changed = false;
+        }
+
+    }
 }
