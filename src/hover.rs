@@ -41,7 +41,7 @@ pub struct Hoverable {
 
 impl Default for Hoverable {
     fn default() -> Self {
-        Hoverable { is: false, height: 0.0, width: 0.0, changed: false, highlight: None }
+    Hoverable { is: false, height: 0.0, width: 0.0, changed: false, highlight: None@12 }
     }
 }
 

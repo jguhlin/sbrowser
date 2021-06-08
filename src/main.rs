@@ -47,7 +47,7 @@ fn main() {
 pub struct Camera;
 
 fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
-
+1
     for chr in &genome.chromosomes {
         let zf = ui_settings.zoom_factor;
         let width = chr.length as f32 / zf; // 1024 bp per pixel
