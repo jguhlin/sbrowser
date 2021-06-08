@@ -1,0 +1,35 @@
+use bevy::{prelude::*};
+
+use crate::core::states::*;
+
+pub struct MainMenuPlugin;
+impl Plugin for MainMenuPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_state(AppState::MainMenu)
+            .add_system_set(
+                SystemSet::on_update(AppState::MainMenu)
+                    .with_system(menu_buttons.system())
+            )
+            .add_system_set(
+                SystemSet::on_enter(AppState::MainMenu)
+                    .with_system(setup_menu.system())
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::MainMenu)
+                    .with_system(close_menu.system())
+            );           
+    }
+}
+
+
+fn menu_buttons(mut commands: Commands) {
+
+}
+
+fn setup_menu(mut commands: Commands) {
+
+}
+
+fn close_menu(mut commands: Commands) {
+    
+}

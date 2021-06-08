@@ -1,26 +1,27 @@
-use bevy::{
-    prelude::*,
-    input::mouse::MouseWheel,
-};
+use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use structs::*;
 
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_inspector_egui::Inspectable;
-use bevy_prototype_lyon::prelude::*;
 use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy_prototype_lyon::prelude::*;
 
 mod genome;
 mod hover;
 mod structs;
+mod views;
+mod core;
 
-use crate::structs::*;
+use crate::core::states::*;
+use crate::views::*;
+
 use crate::genome::*;
 use crate::hover::*;
+use crate::structs::*;
 
 fn main() {
-
     let genome = genome::get_genome();
 
     App::build()
@@ -30,11 +31,12 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(HoverPlugin)
         .add_plugin(ShapePlugin)
-
+        .add_plugin(MainMenuPlugin)
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
-        
         .add_startup_system(setup.system())
+
+
         .add_startup_system(draw_chromosome.system())
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
@@ -47,7 +49,6 @@ fn main() {
 pub struct Camera;
 
 fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
-1
     for chr in &genome.chromosomes {
         let zf = ui_settings.zoom_factor;
         let width = chr.length as f32 / zf; // 1024 bp per pixel
@@ -55,68 +56,81 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
         let shape = shapes::Rectangle {
             width: width,
             height: 20.0,
-    //        origin:  shapes::RectangleOrigin::TopLeft,
+            //        origin:  shapes::RectangleOrigin::TopLeft,
             ..shapes::Rectangle::default()
         };
 
-        commands.spawn_bundle(GeometryBuilder::build_as(
-            &shape,
-            ShapeColors::outlined(Color::TEAL, Color::BLACK),
-            DrawMode::Fill(FillOptions::default()),
-            /*
-            DrawMode::Outlined {
-                fill_options: FillOptions::default(),
-                outline_options: StrokeOptions::default().with_line_width(10.0),
-            }, */
-            Transform::default(),
-        )).insert(chr.clone()).insert(Hoverable { height: 20.0, width: width, ..Default::default() });
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &shape,
+                ShapeColors::outlined(Color::TEAL, Color::BLACK),
+                DrawMode::Fill(FillOptions::default()),
+                /*
+                DrawMode::Outlined {
+                    fill_options: FillOptions::default(),
+                    outline_options: StrokeOptions::default().with_line_width(10.0),
+                }, */
+                Transform::default(),
+            ))
+            .insert(chr.clone())
+            .insert(Hoverable {
+                height: 20.0,
+                width: width,
+                ..Default::default()
+            });
 
         for gene in &chr.genes {
-
             let width = (gene.end - gene.start) as f32 / zf;
 
             let shape = shapes::Rectangle {
                 width: width,
                 height: 10.0,
-            //    origin:  shapes::RectangleOrigin::TopLeft,
+                //    origin:  shapes::RectangleOrigin::TopLeft,
                 ..shapes::Rectangle::default()
             };
 
-    //        println!("{}", gene.start as f32 / zf);
+            //        println!("{}", gene.start as f32 / zf);
             let start = gene.start as f32 / zf;
-    //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
-    //        let transform = Transform::default();
+            //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
+            //        let transform = Transform::default();
 
             let coords = calc_coords(&chr, zf, gene);
             println!("{:#?}", coords);
 
-    //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
+            //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
             let transform = Transform::from_translation(coords);
 
-            commands.spawn_bundle(GeometryBuilder::build_as(
-                &shape,
-                ShapeColors::outlined(Color::RED, Color::BLACK),
-                DrawMode::Fill(FillOptions::default()),
-                /*DrawMode::Outlined {
-                    fill_options: FillOptions::default(),
-                    outline_options: StrokeOptions::default().with_line_width(1.0),
-                },*/
-                transform,
-            )).insert(Hoverable{ height: 10.0, width: width, ..Default::default() });
-        
+            commands
+                .spawn_bundle(GeometryBuilder::build_as(
+                    &shape,
+                    ShapeColors::outlined(Color::RED, Color::BLACK),
+                    DrawMode::Fill(FillOptions::default()),
+                    /*DrawMode::Outlined {
+                        fill_options: FillOptions::default(),
+                        outline_options: StrokeOptions::default().with_line_width(1.0),
+                    },*/
+                    transform,
+                ))
+                .insert(Hoverable {
+                    height: 10.0,
+                    width: width,
+                    ..Default::default()
+                });
         }
     }
 }
 
 fn setup(mut commands: Commands) {
-/*    let shape = shapes::RegularPolygon {
+    /*    let shape = shapes::RegularPolygon {
         sides: 6,
         feature: shapes::RegularPolygonFeature::Radius(200.0),
         ..shapes::RegularPolygon::default()
     }; */
 
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d()).insert(Camera);
-/*    commands.spawn_bundle(GeometryBuilder::build_as(
+    commands
+        .spawn_bundle(OrthographicCameraBundle::new_2d())
+        .insert(Camera);
+    /*    commands.spawn_bundle(GeometryBuilder::build_as(
         &shape,
         ShapeColors::outlined(Color::TEAL, Color::BLACK),
         DrawMode::Outlined {
@@ -130,15 +144,15 @@ fn setup(mut commands: Commands) {
 fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
     let width = chr.length as f32;
 
-    let zero = -width/2.0;
+    let zero = -width / 2.0;
 
     let start_loc = zero + (gene.start as f32);
-//    let end_loc = zero + (gene.end as f32 / zf);
+    //    let end_loc = zero + (gene.end as f32 / zf);
 
     let center = start_loc + ((gene.end - gene.start) as f32 / 2.0);
 
     Vec3::new(center / zf, -50.0, 1.0)
-//    Vec3::new(zero, -50.0, 1.0)
+    //    Vec3::new(zero, -50.0, 1.0)
 }
 
 fn camera_move(
@@ -148,7 +162,7 @@ fn camera_move(
     mut query: Query<(&Camera, &mut Transform)>,
 ) {
     let window = windows.get_primary().unwrap();
- 
+
     for (_camera, mut transform) in query.iter_mut() {
         let mut velocity = Vec3::ZERO;
         let vert = Vec3::new(0.0, 1.0, 0.0);
@@ -190,7 +204,7 @@ fn mouse_scroll(
     }
 
     /*
- 
+
     for (_camera, mut transform) in query.iter_mut() {
         let mut velocity = Vec3::ZERO;
         let vert = Vec3::new(0.0, 1.0, 0.0);
@@ -204,19 +218,22 @@ fn mouse_scroll(
                 KeyCode::D => velocity += horiz,
                 _ => (),
             }
-        } 
+        }
 
         velocity = velocity.normalize();
 
         if !velocity.is_nan() {
             transform.translation += velocity * time.delta_seconds() * 100.0
-        } 
+        }
     } */
 }
 
 pub struct Highlight;
 
-fn hover_highlight(mut commands: Commands, mut q: Query<(Entity, &mut Hoverable, &mut ShapeColors, &Transform), (Changed<Hoverable>)>) {
+fn hover_highlight(
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Hoverable, &mut ShapeColors, &Transform), (Changed<Hoverable>)>,
+) {
     for (e, mut hov, mut sc, transform) in q.iter_mut() {
         if hov.changed && hov.is {
             // Display a highlight
@@ -230,12 +247,15 @@ fn hover_highlight(mut commands: Commands, mut q: Query<(Entity, &mut Hoverable,
             let mut transform = transform.clone();
             transform.translation.z = 2.0;
 
-            let highlight = commands.spawn_bundle(GeometryBuilder::build_as(
-                &shape,
-                ShapeColors::outlined(Color::YELLOW, Color::YELLOW),
-                DrawMode::Fill(FillOptions::default()),
-                transform,
-            )).insert(Highlight).id();
+            let highlight = commands
+                .spawn_bundle(GeometryBuilder::build_as(
+                    &shape,
+                    ShapeColors::outlined(Color::YELLOW, Color::YELLOW),
+                    DrawMode::Fill(FillOptions::default()),
+                    transform,
+                ))
+                .insert(Highlight)
+                .id();
 
             hov.highlight = Some(highlight);
             hov.changed = false;
@@ -246,6 +266,5 @@ fn hover_highlight(mut commands: Commands, mut q: Query<(Entity, &mut Hoverable,
 
             hov.changed = false;
         }
-
     }
 }

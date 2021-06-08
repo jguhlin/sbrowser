@@ -7,11 +7,14 @@ pub enum View {
 
 pub struct UISetting {
     pub zoom_factor: f32,
-    pub view: View
+    pub view: View,
 }
 
 impl Default for UISetting {
     fn default() -> UISetting {
-        UISetting { zoom_factor: 1024.0, view: View::SequenceOverview }
+        UISetting {
+            zoom_factor: 1024.0,
+            view: View::SequenceOverview,
+        }
     }
 }

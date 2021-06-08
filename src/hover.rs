@@ -1,11 +1,7 @@
 // Taken from another project of mine
 // But updated thanks to the bevy cheatbook: https://erasin.wang/books/bevy-cheatbook/cookbook/cursor2world.html
 
-use bevy::{
-    prelude::*, 
-    render::camera::Camera, 
-    window::CursorMoved,
-};
+use bevy::{prelude::*, render::camera::Camera, window::CursorMoved};
 
 use bevy_inspector_egui::Inspectable;
 
@@ -16,9 +12,9 @@ impl Plugin for HoverPlugin {
             .add_system(hoverable.system())
             .init_resource::<CursorState>();
         // app.init_resource::<CursorMovedState>();
-            // .add_system_to_stage(stage::PRE_UPDATE, cursor_state.system())
-            // .add_system_to_stage(stage::UPDATE, cursor_transform.system())
-            // .add_system_to_stage(stage::UPDATE, hoverable.system());
+        // .add_system_to_stage(stage::PRE_UPDATE, cursor_state.system())
+        // .add_system_to_stage(stage::UPDATE, cursor_transform.system())
+        // .add_system_to_stage(stage::UPDATE, hoverable.system());
     }
 }
 
@@ -41,7 +37,13 @@ pub struct Hoverable {
 
 impl Default for Hoverable {
     fn default() -> Self {
-    Hoverable { is: false, height: 0.0, width: 0.0, changed: false, highlight: None@12 }
+        Hoverable {
+            is: false,
+            height: 0.0,
+            width: 0.0,
+            changed: false,
+            highlight: None,
+        }
     }
 }
 
@@ -52,7 +54,7 @@ fn cursor_moved(
     mut cursor_state: ResMut<CursorState>,
 ) {
     let e = e_cursor_moved.iter();
-    
+
     let camera_transform = q_camera.iter().next().unwrap();
 
     for i in e {
