@@ -7,12 +7,13 @@ use bevy_inspector_egui::Inspectable;
 use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_prototype_lyon::prelude::*;
+use bevy_flycam::{NoCameraPlayerPlugin, FlyCam};
 
+mod core;
 mod genome;
 mod hover;
 mod structs;
-mod views;
-mod core;
+mod views; 
 
 use crate::core::states::*;
 use crate::views::*;
@@ -29,14 +30,15 @@ fn main() {
         .insert_resource(genome)
         .insert_resource(UISetting::default())
         .add_plugins(DefaultPlugins)
+        // .add_plugin(NoCameraPlayerPlugin)
+        .add_plugin(EguiPlugin)
         .add_plugin(HoverPlugin)
         .add_plugin(ShapePlugin)
+        .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
-
-
         .add_startup_system(draw_chromosome.system())
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
@@ -127,9 +129,15 @@ fn setup(mut commands: Commands) {
         ..shapes::RegularPolygon::default()
     }; */
 
+    // commands.spawn_bundle(PerspectiveCameraBundle {
+    //    transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //    ..Default::default()
+    //}).insert(Camera).insert(FlyCam);
+
     commands
         .spawn_bundle(OrthographicCameraBundle::new_2d())
         .insert(Camera);
+
     /*    commands.spawn_bundle(GeometryBuilder::build_as(
         &shape,
         ShapeColors::outlined(Color::TEAL, Color::BLACK),
