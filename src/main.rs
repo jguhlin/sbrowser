@@ -3,17 +3,17 @@ use bevy::{input::mouse::MouseWheel, prelude::*};
 use structs::*;
 
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::Inspectable;
 use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_prototype_lyon::prelude::*;
-use bevy_flycam::{NoCameraPlayerPlugin, FlyCam};
 
 mod core;
 mod genome;
 mod hover;
 mod structs;
-mod views; 
+mod views;
 
 use crate::core::states::*;
 use crate::views::*;
@@ -36,6 +36,7 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
+        .add_plugin(SequenceOverviewPlugin)
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
@@ -43,6 +44,7 @@ fn main() {
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
         .add_system(hover_highlight.system())
+        .add_state(AppState::SequenceOverview)
         // .add_system(zoom_chromosome.system())
         .run();
 }
@@ -136,7 +138,8 @@ fn setup(mut commands: Commands) {
 
     commands
         .spawn_bundle(OrthographicCameraBundle::new_2d())
-        .insert(Camera);
+        .insert(Camera)
+        .insert(FlyCam);
 
     /*    commands.spawn_bundle(GeometryBuilder::build_as(
         &shape,
