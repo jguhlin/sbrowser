@@ -1,4 +1,4 @@
-use bevy::{input::mouse::MouseWheel, prelude::*};
+use bevy::{input::mouse::MouseWheel, prelude::*, pbr::Light, pbr::AmbientLight,};
 
 use structs::*;
 
@@ -27,6 +27,10 @@ fn main() {
 
     App::build()
         .insert_resource(Msaa { samples: 8 })
+        .insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 0.5 / 5.0f32,
+        })
         .insert_resource(genome)
         .insert_resource(UISetting::default())
         .add_plugins(DefaultPlugins)
@@ -135,6 +139,17 @@ fn setup(mut commands: Commands) {
     //    transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
     //    ..Default::default()
     //}).insert(Camera).insert(FlyCam);
+
+    commands.spawn_bundle(LightBundle {
+        transform: Transform::from_translation(Vec3::new(64., 50., 135.)),
+/*         light: Light { 
+            intensity: 8000.,
+            range: 1000.,
+            ..Default::default()
+         }, */
+        ..Default::default()
+    });
+
 
     commands
         .spawn_bundle(OrthographicCameraBundle::new_2d())
