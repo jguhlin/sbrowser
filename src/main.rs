@@ -1,4 +1,4 @@
-use bevy::{input::mouse::MouseWheel, prelude::*, pbr::Light, pbr::AmbientLight,};
+use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::Light, prelude::*};
 
 use structs::*;
 
@@ -7,6 +7,7 @@ use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::Inspectable;
 use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy_mod_picking::*;
 use bevy_prototype_lyon::prelude::*;
 
 mod core;
@@ -34,9 +35,13 @@ fn main() {
         .insert_resource(genome)
         .insert_resource(UISetting::default())
         .add_plugins(DefaultPlugins)
-        // .add_plugin(NoCameraPlayerPlugin)
         .add_plugin(EguiPlugin)
-        .add_plugin(HoverPlugin)
+        .add_plugin(PickingPlugin)
+        .add_plugin(InteractablePickingPlugin)
+        .add_plugin(HighlightablePickingPlugin)
+        .add_plugin(DebugCursorPickingPlugin)
+        .add_plugin(DebugEventsPickingPlugin)
+        //.add_plugin(HoverPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
@@ -44,10 +49,11 @@ fn main() {
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
-        .add_startup_system(draw_chromosome.system())
+        // .add_startup_system(draw_chromosome.system())
+        // .add_plugin(NoCameraPlayerPlugin)
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
-        .add_system(hover_highlight.system())
+        //.add_system(hover_highlight.system())
         .add_state(AppState::SequenceOverview)
         // .add_system(zoom_chromosome.system())
         .run();
@@ -128,6 +134,80 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
     }
 }
 
+/*
+
+fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
+    for chr in &genome.chromosomes {
+        let zf = ui_settings.zoom_factor;
+        let width = chr.length as f32 / zf; // 1024 bp per pixel
+
+        let shape = shapes::Rectangle {
+            width: width,
+            height: 20.0,
+            //        origin:  shapes::RectangleOrigin::TopLeft,
+            ..shapes::Rectangle::default()
+        };
+
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &shape,
+                ShapeColors::outlined(Color::TEAL, Color::BLACK),
+                DrawMode::Fill(FillOptions::default()),
+                /*
+                DrawMode::Outlined {
+                    fill_options: FillOptions::default(),
+                    outline_options: StrokeOptions::default().with_line_width(10.0),
+                }, */
+                Transform::default(),
+            ))
+            .insert(chr.clone())
+            .insert(Hoverable {
+                height: 20.0,
+                width: width,
+                ..Default::default()
+            });
+
+        for gene in &chr.genes {
+            let width = (gene.end - gene.start) as f32 / zf;
+
+            let shape = shapes::Rectangle {
+                width: width,
+                height: 10.0,
+                //    origin:  shapes::RectangleOrigin::TopLeft,
+                ..shapes::Rectangle::default()
+            };
+
+            //        println!("{}", gene.start as f32 / zf);
+            let start = gene.start as f32 / zf;
+            //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
+            //        let transform = Transform::default();
+
+            let coords = calc_coords(&chr, zf, gene);
+            println!("{:#?}", coords);
+
+            //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
+            let transform = Transform::from_translation(coords);
+
+            commands
+                .spawn_bundle(GeometryBuilder::build_as(
+                    &shape,
+                    ShapeColors::outlined(Color::RED, Color::BLACK),
+                    DrawMode::Fill(FillOptions::default()),
+                    /*DrawMode::Outlined {
+                        fill_options: FillOptions::default(),
+                        outline_options: StrokeOptions::default().with_line_width(1.0),
+                    },*/
+                    transform,
+                ))
+                .insert(Hoverable {
+                    height: 10.0,
+                    width: width,
+                    ..Default::default()
+                });
+        }
+    }
+} */
+
 fn setup(mut commands: Commands) {
     /*    let shape = shapes::RegularPolygon {
         sides: 6,
@@ -141,20 +221,27 @@ fn setup(mut commands: Commands) {
     //}).insert(Camera).insert(FlyCam);
 
     commands.spawn_bundle(LightBundle {
-        transform: Transform::from_translation(Vec3::new(64., 50., 135.)),
-/*         light: Light { 
-            intensity: 8000.,
-            range: 1000.,
-            ..Default::default()
-         }, */
+        transform: Transform::from_translation(Vec3::new(0., 5., 5.)),
+        /*         light: Light {
+           intensity: 8000.,
+           range: 1000.,
+           ..Default::default()
+        }, */
         ..Default::default()
     });
 
+    //let mut camera_bundle = OrthographicCameraBundle::new_3d();
+    let mut camera_bundle = PerspectiveCameraBundle::default();
+    camera_bundle.transform = Transform::from_xyz(0., 0., 15.)
+        .looking_at(Vec3::splat(0.0), camera_bundle.transform.local_y());
+
+    commands.spawn_bundle(UiCameraBundle::default());
 
     commands
-        .spawn_bundle(OrthographicCameraBundle::new_2d())
+        .spawn_bundle(camera_bundle)
         .insert(Camera)
-        .insert(FlyCam);
+        .insert(FlyCam)
+        .insert_bundle(PickingCameraBundle::default());
 
     /*    commands.spawn_bundle(GeometryBuilder::build_as(
         &shape,
@@ -191,8 +278,8 @@ fn camera_move(
 
     for (_camera, mut transform) in query.iter_mut() {
         let mut velocity = Vec3::ZERO;
-        let vert = Vec3::new(0.0, 1.0, 0.0);
-        let horiz = Vec3::new(1.0, 0.0, 0.0);
+        let vert = Vec3::new(0.0, 1., 0.0);
+        let horiz = Vec3::new(1., 0.0, 0.0);
 
         for key in keys.get_pressed() {
             match key {
@@ -207,7 +294,7 @@ fn camera_move(
         velocity = velocity.normalize();
 
         if !velocity.is_nan() {
-            transform.translation += velocity * time.delta_seconds() * 100.0
+            transform.translation += velocity * time.delta_seconds()
         }
     }
 }
