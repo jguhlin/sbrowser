@@ -9,19 +9,21 @@ use bevy_inspector_egui::InspectorPlugin;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_mod_picking::*;
 use bevy_prototype_lyon::prelude::*;
+use bevy::render::camera::*;
 
 mod core;
 mod genome;
 mod hover;
 mod structs;
 mod views;
+mod utils;
 
 use crate::core::states::*;
 use crate::views::*;
-
 use crate::genome::*;
 use crate::hover::*;
 use crate::structs::*;
+use crate::utils::label_placer::*;
 
 fn main() {
     let genome = genome::get_genome();
@@ -41,6 +43,7 @@ fn main() {
         .add_plugin(HighlightablePickingPlugin)
         .add_plugin(DebugCursorPickingPlugin)
         .add_plugin(DebugEventsPickingPlugin)
+        .add_plugin(LabelPlacerPlugin)
         //.add_plugin(HoverPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(MenuBarPlugin)
@@ -60,7 +63,7 @@ fn main() {
 }
 
 #[derive(Default)]
-pub struct Camera;
+pub struct MainCamera;
 
 fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
     for chr in &genome.chromosomes {
@@ -239,7 +242,7 @@ fn setup(mut commands: Commands) {
 
     commands
         .spawn_bundle(camera_bundle)
-        .insert(Camera)
+        .insert(MainCamera)
         .insert(FlyCam)
         .insert_bundle(PickingCameraBundle::default());
 
@@ -304,7 +307,7 @@ fn mouse_scroll(
     time: Res<Time>,
     windows: Res<Windows>,
     mut ui_setting: ResMut<UISetting>,
-    mut query: Query<(&Camera, &mut Transform)>,
+    mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
 ) {
     let window = windows.get_primary().unwrap();
 

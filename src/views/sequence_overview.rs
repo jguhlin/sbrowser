@@ -1,9 +1,11 @@
 use bevy::prelude::*;
+use bevy::prelude::shape::CapsuleUvProfile;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
+use bevy::render::camera::*;
 
 use crate::core::states::*;
-use crate::Camera;
+use crate::utils::label_placer::*;
 
 pub struct SequenceOverviewPlugin;
 impl Plugin for SequenceOverviewPlugin {
@@ -34,21 +36,37 @@ fn setup(
     asset_server: Res<AssetServer>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
 ) {
+
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let text_style = TextStyle {
+        font,
+        font_size: 16.,
+        color: Color::WHITE,
+    };
+
+    let text_alignment = TextAlignment::default();
+
     for i in 0..5 {
+        let id = 
         commands
             .spawn_bundle(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Capsule {
-                    radius: 1.,
+                    // latitudes: 2,
+                    // longitudes: 16,
+                    depth: 1.4,
+                    radius: 0.4,
+                    uv_profile: CapsuleUvProfile::Uniform,
                     ..Default::default() //subdivisions: 4,
                 })),
                 material: materials.add(StandardMaterial {
-                    base_color: Color::YELLOW,
+                    base_color: Color::BISQUE,
                     // emissive: Color::WHITE * 10.0f32,
                     ..Default::default()
                 }),
                 transform: Transform {
-                    rotation: Quat::from_rotation_ypr(4.5, 5., 0.),
-                    translation: Vec3::new(i as f32 * 5., 0., 0.),
+                    rotation: Quat::from_rotation_ypr(0., 0., 1.5708),
+                    translation: Vec3::new(i as f32 * 4., 0., 0.),
+                    scale: Vec3::new(1., 1., 1.),
                     ..Default::default()
                 },
 
@@ -62,36 +80,28 @@ fn setup(
                 ..Default::default()
             })
             .insert_bundle(PickableBundle::default())
-            .insert(BoundVol::default());
-
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-        let text_style = TextStyle {
-            font,
-            font_size: 50.,
-            color: Color::WHITE,
-        };
-        let text_alignment = TextAlignment {
-            vertical: VerticalAlign::Center,
-            horizontal: HorizontalAlign::Center,
-        };
+            .insert(BoundVol::default())
+            .insert(LabelBase)
+            .id();
 
         commands.spawn_bundle(TextBundle {
             text: Text::with_section("translation", text_style.clone(), text_alignment),
             style: Style {
                 position: Rect {
-                    bottom: Val::Px(5.),
-                    left: Val::Px(15.),
+                    bottom: Val::Px(0.),
+                    left: Val::Px(0.),
                     ..Default::default()
                 },
+                flex_grow: 0.,
+                flex_shrink: 0.,
+                position_type: PositionType::Absolute,
                 ..Default::default()
             },
-            transform: Transform {
-                translation: Vec3::new(i as f32 * 5., 5., 0.),
-                ..Default::default()
-            },
+            transform: Transform::default(),
             ..Default::default()
-        });
-    }
+        })
+        .insert(Label::belongs_to(id));
+    } 
 }
 
 fn close_menu(mut commands: Commands) {}
