@@ -7,32 +7,20 @@ use bevy::render::camera::*;
 use crate::core::states::*;
 use crate::utils::label_placer::*;
 
-enum SequenceType {
-    Genome,
-    Protein,
-    Transcript,
-    RNA,
-}
+pub struct SequenceViewItem;
 
-pub struct Sequence {
-    seq_type: SequenceType,
-    // file_path: String,
-}
-
-struct SequenceOverviewItem;
-
-pub struct SequenceOverviewPlugin;
-impl Plugin for SequenceOverviewPlugin {
+pub struct SequenceViewPlugin;
+impl Plugin for SequenceViewPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_system_set(
-            SystemSet::on_update(AppState::SequenceOverview)
+            SystemSet::on_update(AppState::SequenceView)
                 .with_system(ui_example.system())
                 .with_system(print_events.system())
                 .with_system(menu_buttons.system()),
         )
-        .add_system_set(SystemSet::on_enter(AppState::SequenceOverview).with_system(setup.system()))
+        .add_system_set(SystemSet::on_enter(AppState::SequenceView).with_system(setup.system()))
         .add_system_set(
-            SystemSet::on_exit(AppState::SequenceOverview).with_system(cleanup.system()),
+            SystemSet::on_exit(AppState::SequenceView).with_system(cleanup.system()),
         );
     }
 }
@@ -45,7 +33,7 @@ pub fn print_events(mut events: EventReader<PickingEvent>,
         if let PickingEvent::Selection(SelectionEvent::JustSelected(x)) = *event {
             println!("Got event...");
             // TODO: Should fire off an event or config to load up the new sequence...
-            state.replace(AppState::SequenceView).unwrap();
+            state.replace(AppState::ChromosomeView).unwrap();
         }
     }
 }
@@ -107,7 +95,7 @@ fn setup(
             .insert_bundle(PickableBundle::default())
             .insert(BoundVol::default())
             .insert(LabelBase)
-            .insert(SequenceOverviewItem)
+            .insert(SequenceViewItem)
             .id();
 
         commands.spawn_bundle(TextBundle {
@@ -127,12 +115,12 @@ fn setup(
             ..Default::default()
         })
         .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
-        .insert(SequenceOverviewItem);
+        .insert(SequenceViewItem);
     } 
 }
 
 fn cleanup(mut commands: Commands,
-    q: Query<(Entity), With<SequenceOverviewItem>>,) {
+    q: Query<(Entity), With<SequenceViewItem>>,) {
 
     for e in q.iter() {
         commands.entity(e).despawn_recursive();

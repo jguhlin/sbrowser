@@ -4,12 +4,10 @@ use structs::*;
 
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
-use bevy_inspector_egui::Inspectable;
-use bevy_inspector_egui::InspectorPlugin;
-use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_mod_picking::*;
 use bevy_prototype_lyon::prelude::*;
 use bevy::render::camera::*;
+use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 
 mod core;
 mod genome;
@@ -28,8 +26,9 @@ use crate::utils::label_placer::*;
 fn main() {
     let genome = genome::get_genome();
 
-    App::build()
-        .insert_resource(Msaa { samples: 8 })
+    let mut app = App::build();
+
+    app.insert_resource(Msaa { samples: 8 })
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 0.5 / 5.0f32,
@@ -37,6 +36,10 @@ fn main() {
         .insert_resource(genome)
         .insert_resource(UISetting::default())
         .add_plugins(DefaultPlugins)
+        .insert_resource(WorldInspectorParams {
+            despawnable_entities: true,
+            ..Default::default()
+        })
         .add_plugin(EguiPlugin)
         .add_plugin(PickingPlugin)
         .add_plugin(InteractablePickingPlugin)
@@ -57,9 +60,18 @@ fn main() {
         .add_system(camera_move.system())
         .add_system(mouse_scroll.system())
         //.add_system(hover_highlight.system())
-        .add_state(AppState::SequenceOverview)
+        .add_state(AppState::SequenceOverview);
         // .add_system(zoom_chromosome.system())
-        .run();
+
+        // getting registry from world
+        let mut registry = app
+            .world_mut()
+            .get_resource_or_insert_with(InspectableRegistry::default);
+
+    // registering custom component to be able to edit it in inspector
+    registry.register::<Label>();
+
+    app.run();
 }
 
 #[derive(Default)]

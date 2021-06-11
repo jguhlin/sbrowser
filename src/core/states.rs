@@ -3,6 +3,7 @@ pub enum AppState {
     MainMenu,
     SequenceOverview,
     Overview,
+    SequenceView,
     ChromosomeView,
     GeneView,
     ProteinView,
