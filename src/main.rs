@@ -2,26 +2,26 @@ use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::Light, prelude::*};
 
 use structs::*;
 
+use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
+use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use bevy_mod_picking::*;
 use bevy_prototype_lyon::prelude::*;
-use bevy::render::camera::*;
-use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 
 mod core;
 mod genome;
 mod hover;
 mod structs;
-mod views;
 mod utils;
+mod views;
 
 use crate::core::states::*;
-use crate::views::*;
 use crate::genome::*;
 use crate::hover::*;
 use crate::structs::*;
 use crate::utils::label_placer::*;
+use crate::views::*;
 
 fn main() {
     let genome = genome::get_genome();
@@ -52,6 +52,7 @@ fn main() {
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(SequenceOverviewPlugin)
+        .add_plugin(SequenceViewPlugin)
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
@@ -61,12 +62,12 @@ fn main() {
         .add_system(mouse_scroll.system())
         //.add_system(hover_highlight.system())
         .add_state(AppState::SequenceOverview);
-        // .add_system(zoom_chromosome.system())
+    // .add_system(zoom_chromosome.system())
 
-        // getting registry from world
-        let mut registry = app
-            .world_mut()
-            .get_resource_or_insert_with(InspectableRegistry::default);
+    // getting registry from world
+    let mut registry = app
+        .world_mut()
+        .get_resource_or_insert_with(InspectableRegistry::default);
 
     // registering custom component to be able to edit it in inspector
     registry.register::<Label>();
@@ -76,78 +77,6 @@ fn main() {
 
 #[derive(Default)]
 pub struct MainCamera;
-
-fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
-    for chr in &genome.chromosomes {
-        let zf = ui_settings.zoom_factor;
-        let width = chr.length as f32 / zf; // 1024 bp per pixel
-
-        let shape = shapes::Rectangle {
-            width: width,
-            height: 20.0,
-            //        origin:  shapes::RectangleOrigin::TopLeft,
-            ..shapes::Rectangle::default()
-        };
-
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &shape,
-                ShapeColors::outlined(Color::TEAL, Color::BLACK),
-                DrawMode::Fill(FillOptions::default()),
-                /*
-                DrawMode::Outlined {
-                    fill_options: FillOptions::default(),
-                    outline_options: StrokeOptions::default().with_line_width(10.0),
-                }, */
-                Transform::default(),
-            ))
-            .insert(chr.clone())
-            .insert(Hoverable {
-                height: 20.0,
-                width: width,
-                ..Default::default()
-            });
-
-        for gene in &chr.genes {
-            let width = (gene.end - gene.start) as f32 / zf;
-
-            let shape = shapes::Rectangle {
-                width: width,
-                height: 10.0,
-                //    origin:  shapes::RectangleOrigin::TopLeft,
-                ..shapes::Rectangle::default()
-            };
-
-            //        println!("{}", gene.start as f32 / zf);
-            let start = gene.start as f32 / zf;
-            //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
-            //        let transform = Transform::default();
-
-            let coords = calc_coords(&chr, zf, gene);
-            println!("{:#?}", coords);
-
-            //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
-            let transform = Transform::from_translation(coords);
-
-            commands
-                .spawn_bundle(GeometryBuilder::build_as(
-                    &shape,
-                    ShapeColors::outlined(Color::RED, Color::BLACK),
-                    DrawMode::Fill(FillOptions::default()),
-                    /*DrawMode::Outlined {
-                        fill_options: FillOptions::default(),
-                        outline_options: StrokeOptions::default().with_line_width(1.0),
-                    },*/
-                    transform,
-                ))
-                .insert(Hoverable {
-                    height: 10.0,
-                    width: width,
-                    ..Default::default()
-                });
-        }
-    }
-}
 
 /*
 

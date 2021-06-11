@@ -1,8 +1,8 @@
-use bevy::prelude::*;
 use bevy::prelude::shape::CapsuleUvProfile;
+use bevy::prelude::*;
+use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
-use bevy::render::camera::*;
 
 use crate::core::states::*;
 use crate::utils::label_placer::*;
@@ -37,7 +37,8 @@ impl Plugin for SequenceOverviewPlugin {
     }
 }
 
-pub fn print_events(mut events: EventReader<PickingEvent>,
+pub fn print_events(
+    mut events: EventReader<PickingEvent>,
     mut state: ResMut<State<AppState>>,
     //    query: Query<()>,
 ) {
@@ -61,7 +62,6 @@ fn setup(
     asset_server: Res<AssetServer>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
 ) {
-
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let text_style = TextStyle {
         font,
@@ -72,8 +72,7 @@ fn setup(
     let text_alignment = TextAlignment::default();
 
     for i in 0..5 {
-        let id = 
-        commands
+        let id = commands
             .spawn_bundle(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Capsule {
                     // latitudes: 2,
@@ -110,29 +109,30 @@ fn setup(
             .insert(SequenceOverviewItem)
             .id();
 
-        commands.spawn_bundle(TextBundle {
-            text: Text::with_section("translation", text_style.clone(), text_alignment),
-            style: Style {
-                position: Rect {
-                    bottom: Val::Px(0.),
-                    left: Val::Px(0.),
+        commands
+            .spawn_bundle(TextBundle {
+                text: Text::with_section("translation", text_style.clone(), text_alignment),
+                style: Style {
+                    position: Rect {
+                        bottom: Val::Px(0.),
+                        left: Val::Px(0.),
+                        ..Default::default()
+                    },
+                    flex_grow: 0.,
+                    flex_shrink: 0.,
+                    position_type: PositionType::Absolute,
                     ..Default::default()
                 },
-                flex_grow: 0.,
-                flex_shrink: 0.,
-                position_type: PositionType::Absolute,
+                transform: Transform::default(),
                 ..Default::default()
-            },
-            transform: Transform::default(),
-            ..Default::default()
-        })
-        .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
-        .insert(SequenceOverviewItem);
-    } 
+            })
+            .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
+            .insert(SequenceOverviewItem);
+    }
 }
 
-fn cleanup(mut commands: Commands,
-    q: Query<(Entity), With<SequenceOverviewItem>>,) {
+fn cleanup(mut commands: Commands, q: Query<(Entity), With<SequenceOverviewItem>>) {
+    println!("Cleaning!");
 
     for e in q.iter() {
         commands.entity(e).despawn_recursive();
