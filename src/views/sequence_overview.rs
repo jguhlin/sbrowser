@@ -5,7 +5,9 @@ use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
 
 use crate::core::states::*;
+use crate::parsers::*;
 use crate::utils::label_placer::*;
+use crate::structs::*;
 
 enum SequenceType {
     Genome,
@@ -40,13 +42,15 @@ impl Plugin for SequenceOverviewPlugin {
 pub fn print_events(
     mut events: EventReader<PickingEvent>,
     mut state: ResMut<State<AppState>>,
-    //    query: Query<()>,
+    query: Query<(&ClickableLandmark)>,
 ) {
     for event in events.iter() {
         if let PickingEvent::Selection(SelectionEvent::JustSelected(x)) = *event {
             println!("Got event...");
             // TODO: Should fire off an event or config to load up the new sequence...
             state.replace(AppState::SequenceView).unwrap();
+            let j = query.get(x).unwrap();
+            println!("{:#?}", j);
         }
     }
 }
@@ -61,6 +65,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
+    genome: Option<Res<Gff3>>,
 ) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let text_style = TextStyle {
@@ -71,7 +76,20 @@ fn setup(
 
     let text_alignment = TextAlignment::default();
 
-    for i in 0..5 {
+    if genome.is_none() {
+        return;
+    }
+
+    let genome = genome.unwrap();
+
+    for (i, landmark) in genome.landmarks.iter().enumerate() {
+
+        // 5 per row
+        let row = i / 5;
+        let col = i % 5;
+
+        println!("{:#?} {:#?}", row, col);
+
         let id = commands
             .spawn_bundle(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -88,30 +106,22 @@ fn setup(
                     ..Default::default()
                 }),
                 transform: Transform {
-                    rotation: Quat::from_rotation_ypr(0., 0., 1.5708),
-                    translation: Vec3::new(-8. + i as f32 * 4., 0., 0.),
+                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),                   
+                    translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
                     scale: Vec3::new(1., 1., 1.),
-                    ..Default::default()
                 },
-
-                //        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                //        material: materials.add(StandardMaterial {
-                //            base_color: Color::hex("ffd891").unwrap(),
-                // vary key PBR parameters on a grid of spheres to show the effect
-                //            ..Default::default()
-                //        }),
-                //        transform: Transform::from_xyz(-5.0, -2.5, 0.0),
                 ..Default::default()
             })
             .insert_bundle(PickableBundle::default())
             .insert(BoundVol::default())
             .insert(LabelBase)
             .insert(SequenceOverviewItem)
+            .insert(ClickableLandmark::from(&landmark.0))
             .id();
 
         commands
             .spawn_bundle(TextBundle {
-                text: Text::with_section("translation", text_style.clone(), text_alignment),
+                text: Text::with_section(landmark.0.to_string(), text_style.clone(), text_alignment),
                 style: Style {
                     position: Rect {
                         bottom: Val::Px(0.),

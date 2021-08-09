@@ -6,6 +6,7 @@ use bevy_inspector_egui::Inspectable;
 
 use crate::core::states::*;
 use crate::MainCamera;
+use crate::structs::*;
 
 #[derive(Inspectable)]
 pub struct Label {
@@ -41,24 +42,27 @@ impl Plugin for LabelPlacerPlugin {
 // TODO: Add changed<> detection
 fn label_placer(
     windows: Res<Windows>,
-    mut label_query: Query<(&mut Style, &CalculatedSize, &Label)>,
-    lb_query: Query<&Transform, With<LabelBase>>,
+    mut label_query: Query<(&mut Style, &CalculatedSize, &Label), Without<bevy::render::draw::OutsideFrustum>>,
+    lb_query: Query<&Transform, (With<LabelBase>, Without<bevy::render::draw::OutsideFrustum>)>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-) // Main 3d camera needs struct "Camera"
+    mut ev_cameramoved: EventReader<CameraMoved>,
+) // Main 3d camera needs struct "MainCamera"
 {
     // let window = windows.get_primary().unwrap();
-    for (camera, camera_transform) in camera_query.iter() {
-        for (mut style, calculated, label) in label_query.iter_mut() {
-            let lb_position = lb_query.get(label.belongs_to).unwrap();
-            match camera.world_to_screen(&windows, camera_transform, lb_position.translation) {
-                Some(coords) => {
-                    style.position.left =
-                        Val::Px(coords.x - calculated.size.width / 2.0 + label.offset.x);
-                    style.position.bottom =
-                        Val::Px(coords.y - calculated.size.height / 2.0 + label.offset.y);
-                }
-                None => {
-                    style.position.bottom = Val::Px(-1000.0);
+    if ev_cameramoved.iter().next().is_some() {
+        for (camera, camera_transform) in camera_query.iter() {
+            for (mut style, calculated, label) in label_query.iter_mut() {
+                let lb_position = lb_query.get(label.belongs_to).unwrap();
+                match camera.world_to_screen(&windows, camera_transform, lb_position.translation) {
+                    Some(coords) => {
+                        style.position.left =
+                            Val::Px(coords.x - calculated.size.width / 2.0 + label.offset.x);
+                        style.position.bottom =
+                            Val::Px(coords.y - calculated.size.height / 2.0 + label.offset.y);
+                    }
+                    None => {
+                        style.position.bottom = Val::Px(-1000.0);
+                    }
                 }
             }
         }

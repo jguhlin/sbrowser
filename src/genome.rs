@@ -1,5 +1,7 @@
 // Placeholder
 
+use crate::parsers::gff3;
+
 pub struct Genome {
     pub chromosomes: Vec<Chromosome>,
 }

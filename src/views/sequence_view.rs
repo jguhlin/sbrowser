@@ -37,7 +37,7 @@ fn setup(
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Quad {
                 size: Vec2::new(0.2, 10.),
-                flip: false
+                flip: false,
             })),
             material: materials.add(StandardMaterial {
                 base_color: Color::BISQUE,
@@ -45,10 +45,9 @@ fn setup(
                 ..Default::default()
             }),
             transform: Transform {
-                rotation: Quat::from_rotation_ypr(0., 0., 1.5708),
+                rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
                 translation: Vec3::new(0., 5., 0.),
                 scale: Vec3::new(1., 1., 1.),
-                ..Default::default()
             },
 
             //        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),

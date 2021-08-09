@@ -12,6 +12,7 @@ use bevy_prototype_lyon::prelude::*;
 mod core;
 mod genome;
 mod hover;
+mod parsers;
 mod structs;
 mod utils;
 mod views;
@@ -19,12 +20,15 @@ mod views;
 use crate::core::states::*;
 use crate::genome::*;
 use crate::hover::*;
+use crate::parsers::*;
 use crate::structs::*;
 use crate::utils::label_placer::*;
 use crate::views::*;
 
 fn main() {
-    let genome = genome::get_genome();
+    // let genome = genome::get_genome_from_gff3("converted.sorted.s.gff3");
+
+    let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
 
     let mut app = App::build();
 
@@ -34,7 +38,9 @@ fn main() {
             brightness: 0.5 / 5.0f32,
         })
         .insert_resource(genome)
+        // .insert_resource(genome)
         .insert_resource(UISetting::default())
+        .add_event::<CameraMoved>()
         .add_plugins(DefaultPlugins)
         .insert_resource(WorldInspectorParams {
             despawnable_entities: true,
@@ -152,7 +158,8 @@ fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res
     }
 } */
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands,
+    mut ev_cameramoved: EventWriter<CameraMoved>,) {
     /*    let shape = shapes::RegularPolygon {
         sides: 6,
         feature: shapes::RegularPolygonFeature::Radius(200.0),
@@ -196,6 +203,9 @@ fn setup(mut commands: Commands) {
         },
         Transform::default(),
     )); */
+
+    // Trigger label placements
+    ev_cameramoved.send(CameraMoved);
 }
 
 fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
@@ -217,13 +227,19 @@ fn camera_move(
     time: Res<Time>,
     windows: Res<Windows>,
     mut query: Query<(&Camera, &mut Transform)>,
+    mut ev_cameramoved: EventWriter<CameraMoved>,
 ) {
+
+    if keys.get_pressed().len() == 0 {
+        return;
+    }
+
     let window = windows.get_primary().unwrap();
 
     for (_camera, mut transform) in query.iter_mut() {
         let mut velocity = Vec3::ZERO;
-        let vert = Vec3::new(0.0, 1., 0.0);
-        let horiz = Vec3::new(1., 0.0, 0.0);
+        let vert = Vec3::new(0.0, 0.8, 0.0);
+        let horiz = Vec3::new(0.8, 0.0, 0.0);
 
         for key in keys.get_pressed() {
             match key {
@@ -235,10 +251,11 @@ fn camera_move(
             }
         }
 
-        velocity = velocity.normalize();
+        // velocity = velocity.normalize();
 
-        if !velocity.is_nan() {
-            transform.translation += velocity * time.delta_seconds()
+        if !velocity.is_nan() && velocity.abs() > Vec3::ZERO {
+            transform.translation += velocity * time.delta_seconds();
+            ev_cameramoved.send(CameraMoved);
         }
     }
 }
