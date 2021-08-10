@@ -132,7 +132,7 @@ pub fn calc_coords_primitive(chr_length: f32, zf: f32, gene_start: f32, gene_end
 
     let center = start_loc + ((gene_end - gene_start) as f32 / 2.0);
 
-    Vec3::new(center / zf, -50.0, 1.0)
+    Vec3::new(center / zf, 2.0, 1.0)
 }
 
 

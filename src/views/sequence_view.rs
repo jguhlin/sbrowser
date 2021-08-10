@@ -98,12 +98,14 @@ fn draw_gff3_track(
             continue;
         }
 
+        let width = (feature.end - feature.start) as f32 / ui_setting.zoom_factor;
+
         let coords = calc_coords_primitive(86460390 as f32, ui_setting.zoom_factor, feature.start as f32, feature.end as f32);
 
         let id = commands
             .spawn_bundle(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Quad {
-                    size: Vec2::new(0.12, 2.0), //(feature.end - feature.start) as f32),
+                    size: Vec2::new(0.10, width), //(feature.end - feature.start) as f32),
                     flip: false,
                 })),
                 material: materials.add(StandardMaterial {
@@ -112,7 +114,6 @@ fn draw_gff3_track(
                 }),
                 transform: Transform {
                     rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
-                    //translation: Vec3::new(0., 10., 0.),
                     translation: coords,
                     scale: Vec3::new(1., 1., 1.),
                 },
@@ -132,3 +133,78 @@ fn cleanup(mut commands: Commands, q: Query<(Entity), With<SequenceViewItem>>) {
         commands.entity(e).despawn_recursive();
     }
 }
+
+
+/*
+
+fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
+    for chr in &genome.chromosomes {
+        let zf = ui_settings.zoom_factor;
+        let width = chr.length as f32 / zf; // 1024 bp per pixel
+
+        let shape = shapes::Rectangle {
+            width: width,
+            height: 20.0,
+            //        origin:  shapes::RectangleOrigin::TopLeft,
+            ..shapes::Rectangle::default()
+        };
+
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &shape,
+                ShapeColors::outlined(Color::TEAL, Color::BLACK),
+                DrawMode::Fill(FillOptions::default()),
+                /*
+                DrawMode::Outlined {
+                    fill_options: FillOptions::default(),
+                    outline_options: StrokeOptions::default().with_line_width(10.0),
+                }, */
+                Transform::default(),
+            ))
+            .insert(chr.clone())
+            .insert(Hoverable {
+                height: 20.0,
+                width: width,
+                ..Default::default()
+            });
+
+        for gene in &chr.genes {
+            let width = (gene.end - gene.start) as f32 / zf;
+
+            let shape = shapes::Rectangle {
+                width: width,
+                height: 10.0,
+                //    origin:  shapes::RectangleOrigin::TopLeft,
+                ..shapes::Rectangle::default()
+            };
+
+            //        println!("{}", gene.start as f32 / zf);
+            let start = gene.start as f32 / zf;
+            //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
+            //        let transform = Transform::default();
+
+            let coords = calc_coords(&chr, zf, gene);
+            println!("{:#?}", coords);
+
+            //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
+            let transform = Transform::from_translation(coords);
+
+            commands
+                .spawn_bundle(GeometryBuilder::build_as(
+                    &shape,
+                    ShapeColors::outlined(Color::RED, Color::BLACK),
+                    DrawMode::Fill(FillOptions::default()),
+                    /*DrawMode::Outlined {
+                        fill_options: FillOptions::default(),
+                        outline_options: StrokeOptions::default().with_line_width(1.0),
+                    },*/
+                    transform,
+                ))
+                .insert(Hoverable {
+                    height: 10.0,
+                    width: width,
+                    ..Default::default()
+                });
+        }
+    }
+} */
