@@ -5,7 +5,9 @@ use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
 
 use crate::core::states::*;
+use crate::structs::*;
 use crate::utils::label_placer::*;
+use crate::*;
 
 pub struct SequenceViewItem;
 
@@ -20,7 +22,8 @@ impl Plugin for SequenceViewPlugin {
         app.add_system_set(
             SystemSet::on_enter(AppState::SequenceView)
                 .with_system(setup.system())
-                .with_system(draw_primary.system()),
+                .with_system(draw_primary.system())
+                .with_system(draw_gff3_track.system()),
         )
         .add_system_set(SystemSet::on_exit(AppState::SequenceView).with_system(cleanup.system()));
     }
@@ -67,6 +70,62 @@ fn setup(
 }
 
 fn draw_primary(mut commands: Commands) {}
+
+fn draw_gff3_track(
+    mut commands: Commands,
+    bstate: Res<BrowserState>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
+    ui_setting: Res<UISetting>,
+) {
+    if bstate.landmark.is_none() {
+        return;
+    }
+
+    let landmark = bstate.landmark.clone().unwrap();
+    let (features, length) = bstate
+        .gff3
+        .as_ref()
+        .unwrap()
+        .parse_region(&landmark)
+        .unwrap();
+
+    println!("{}", features.len());
+
+    for feature in features {
+        if feature.feature_type != "gene" {
+            continue;
+        }
+
+        let coords = calc_coords_primitive(86460390 as f32, ui_setting.zoom_factor, feature.start as f32, feature.end as f32);
+
+        let id = commands
+            .spawn_bundle(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Quad {
+                    size: Vec2::new(0.12, 2.0), //(feature.end - feature.start) as f32),
+                    flip: false,
+                })),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::GREEN,
+                    ..Default::default()
+                }),
+                transform: Transform {
+                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
+                    //translation: Vec3::new(0., 10., 0.),
+                    translation: coords,
+                    scale: Vec3::new(1., 1., 1.),
+                },
+                ..Default::default()
+            })
+            .insert_bundle(PickableBundle::default())
+            .insert(BoundVol::default())
+            .insert(LabelBase)
+            .insert(SequenceViewItem)
+            .insert(Name::from("Gene"))
+            .id();
+    }
+}
 
 fn cleanup(mut commands: Commands, q: Query<(Entity), With<SequenceViewItem>>) {
     for e in q.iter() {

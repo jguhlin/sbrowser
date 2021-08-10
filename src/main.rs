@@ -29,6 +29,8 @@ fn main() {
     // let genome = genome::get_genome_from_gff3("converted.sorted.s.gff3");
 
     let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
+    let mut bstate = BrowserState::default();
+    bstate.gff3 = Some(genome.clone());
 
     let mut app = App::build();
 
@@ -40,7 +42,9 @@ fn main() {
         .insert_resource(genome)
         // .insert_resource(genome)
         .insert_resource(UISetting::default())
+        .insert_resource(bstate)
         .add_event::<CameraMoved>()
+        .add_event::<LoadLandmark>()
         .add_plugins(DefaultPlugins)
         .insert_resource(WorldInspectorParams {
             despawnable_entities: true,
@@ -84,104 +88,12 @@ fn main() {
 #[derive(Default)]
 pub struct MainCamera;
 
-/*
-
-fn draw_chromosome(mut commands: Commands, genome: Res<Genome>, ui_settings: Res<UISetting>) {
-    for chr in &genome.chromosomes {
-        let zf = ui_settings.zoom_factor;
-        let width = chr.length as f32 / zf; // 1024 bp per pixel
-
-        let shape = shapes::Rectangle {
-            width: width,
-            height: 20.0,
-            //        origin:  shapes::RectangleOrigin::TopLeft,
-            ..shapes::Rectangle::default()
-        };
-
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &shape,
-                ShapeColors::outlined(Color::TEAL, Color::BLACK),
-                DrawMode::Fill(FillOptions::default()),
-                /*
-                DrawMode::Outlined {
-                    fill_options: FillOptions::default(),
-                    outline_options: StrokeOptions::default().with_line_width(10.0),
-                }, */
-                Transform::default(),
-            ))
-            .insert(chr.clone())
-            .insert(Hoverable {
-                height: 20.0,
-                width: width,
-                ..Default::default()
-            });
-
-        for gene in &chr.genes {
-            let width = (gene.end - gene.start) as f32 / zf;
-
-            let shape = shapes::Rectangle {
-                width: width,
-                height: 10.0,
-                //    origin:  shapes::RectangleOrigin::TopLeft,
-                ..shapes::Rectangle::default()
-            };
-
-            //        println!("{}", gene.start as f32 / zf);
-            let start = gene.start as f32 / zf;
-            //        let transform = Transform::from_translation(Vec3::new(gene.start as f32 / 1024.0, -50.0, 1.0));
-            //        let transform = Transform::default();
-
-            let coords = calc_coords(&chr, zf, gene);
-            println!("{:#?}", coords);
-
-            //        let transform = Transform::from_translation(Vec3::new(start, -50.0, 1.0));
-            let transform = Transform::from_translation(coords);
-
-            commands
-                .spawn_bundle(GeometryBuilder::build_as(
-                    &shape,
-                    ShapeColors::outlined(Color::RED, Color::BLACK),
-                    DrawMode::Fill(FillOptions::default()),
-                    /*DrawMode::Outlined {
-                        fill_options: FillOptions::default(),
-                        outline_options: StrokeOptions::default().with_line_width(1.0),
-                    },*/
-                    transform,
-                ))
-                .insert(Hoverable {
-                    height: 10.0,
-                    width: width,
-                    ..Default::default()
-                });
-        }
-    }
-} */
-
-fn setup(mut commands: Commands,
-    mut ev_cameramoved: EventWriter<CameraMoved>,) {
-    /*    let shape = shapes::RegularPolygon {
-        sides: 6,
-        feature: shapes::RegularPolygonFeature::Radius(200.0),
-        ..shapes::RegularPolygon::default()
-    }; */
-
-    // commands.spawn_bundle(PerspectiveCameraBundle {
-    //    transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-    //    ..Default::default()
-    //}).insert(Camera).insert(FlyCam);
-
+fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
     commands.spawn_bundle(LightBundle {
         transform: Transform::from_translation(Vec3::new(0., 5., 5.)),
-        /*         light: Light {
-           intensity: 8000.,
-           range: 1000.,
-           ..Default::default()
-        }, */
         ..Default::default()
     });
 
-    //let mut camera_bundle = OrthographicCameraBundle::new_3d();
     let mut camera_bundle = PerspectiveCameraBundle::default();
     camera_bundle.transform = Transform::from_xyz(0., 0., 15.)
         .looking_at(Vec3::splat(0.0), camera_bundle.transform.local_y());
@@ -194,33 +106,35 @@ fn setup(mut commands: Commands,
         .insert(FlyCam)
         .insert_bundle(PickingCameraBundle::default());
 
-    /*    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        ShapeColors::outlined(Color::TEAL, Color::BLACK),
-        DrawMode::Outlined {
-            fill_options: FillOptions::default(),
-            outline_options: StrokeOptions::default().with_line_width(10.0),
-        },
-        Transform::default(),
-    )); */
-
     // Trigger label placements
+    ev_cameramoved.send(CameraMoved);
     ev_cameramoved.send(CameraMoved);
 }
 
-fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
+pub fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
     let width = chr.length as f32;
 
     let zero = -width / 2.0;
 
     let start_loc = zero + (gene.start as f32);
-    //    let end_loc = zero + (gene.end as f32 / zf);
 
     let center = start_loc + ((gene.end - gene.start) as f32 / 2.0);
 
     Vec3::new(center / zf, -50.0, 1.0)
-    //    Vec3::new(zero, -50.0, 1.0)
 }
+
+pub fn calc_coords_primitive(chr_length: f32, zf: f32, gene_start: f32, gene_end: f32) -> Vec3 {
+    let width = chr_length as f32;
+
+    let zero = -width / 2.0;
+
+    let start_loc = zero + (gene_start as f32);
+
+    let center = start_loc + ((gene_end - gene_start) as f32 / 2.0);
+
+    Vec3::new(center / zf, -50.0, 1.0)
+}
+
 
 fn camera_move(
     keys: Res<Input<KeyCode>>,
@@ -229,7 +143,6 @@ fn camera_move(
     mut query: Query<(&Camera, &mut Transform)>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
 ) {
-
     if keys.get_pressed().len() == 0 {
         return;
     }
@@ -272,34 +185,10 @@ fn mouse_scroll(
     let (_camera, mut transform) = query.single_mut().unwrap();
 
     for event in mouse_wheel_events.iter() {
-        ui_setting.zoom_factor + event.y;
+        ui_setting.zoom_factor += event.y;
         // transform.scale += -event.y * Vec3::new(0.01, 0.00, 0.0);
         transform.scale.x += -event.y * 0.01 * transform.scale.x;
     }
-
-    /*
-
-    for (_camera, mut transform) in query.iter_mut() {
-        let mut velocity = Vec3::ZERO;
-        let vert = Vec3::new(0.0, 1.0, 0.0);
-        let horiz = Vec3::new(1.0, 0.0, 0.0);
-
-        for key in keys.get_pressed() {
-            match key {
-                KeyCode::W => velocity += vert,
-                KeyCode::S => velocity -= vert,
-                KeyCode::A => velocity -= horiz,
-                KeyCode::D => velocity += horiz,
-                _ => (),
-            }
-        }
-
-        velocity = velocity.normalize();
-
-        if !velocity.is_nan() {
-            transform.translation += velocity * time.delta_seconds() * 100.0
-        }
-    } */
 }
 
 pub struct Highlight;

@@ -5,8 +5,8 @@ use bevy::render::camera::*;
 use bevy_inspector_egui::Inspectable;
 
 use crate::core::states::*;
-use crate::MainCamera;
 use crate::structs::*;
+use crate::MainCamera;
 
 #[derive(Inspectable)]
 pub struct Label {
@@ -42,7 +42,10 @@ impl Plugin for LabelPlacerPlugin {
 // TODO: Add changed<> detection
 fn label_placer(
     windows: Res<Windows>,
-    mut label_query: Query<(&mut Style, &CalculatedSize, &Label), Without<bevy::render::draw::OutsideFrustum>>,
+    mut label_query: Query<
+        (&mut Style, &CalculatedSize, &Label),
+        Without<bevy::render::draw::OutsideFrustum>,
+    >,
     lb_query: Query<&Transform, (With<LabelBase>, Without<bevy::render::draw::OutsideFrustum>)>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut ev_cameramoved: EventReader<CameraMoved>,

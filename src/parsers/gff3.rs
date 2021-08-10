@@ -5,7 +5,7 @@ use twox_hash::RandomXxh3HashBuilder64;
 use std::collections::HashMap;
 use std::fs::File;
 use std::hash::BuildHasherDefault;
-use std::io::{BufRead, BufReader, Seek};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 
 use super::feature::*;
 
@@ -117,6 +117,45 @@ impl Gff3 {
             filename,
             landmarks: landmarks_final_vec,
         })
+    }
+
+    pub fn parse_region(&self, landmark: &str) -> Result<(Vec<Feature>, usize), String> {
+        let mut file = match File::open(&self.filename) {
+            Ok(x) => BufReader::new(x),
+            Err(_) => return Err(format!("Unable to open file {}", &self.filename)),
+        };
+
+        let mut features = Vec::new();
+        let mut length = 0;
+
+        for (id, pos, l) in self.landmarks.iter() {
+            if id == landmark {
+                file.seek(SeekFrom::Start(*pos as u64));
+                length = *l;
+                break;
+            }
+        }
+
+        let mut lines = file.byte_lines();
+
+        while let Some(line) = lines.next() {
+            let x = match from_utf8(&line.unwrap()) {
+                Ok(x) => x.trim(),
+                Err(err) => {
+                    println!("Unable to parse a line from GFF3 file...");
+                    continue;
+                }
+            };
+
+            let feat = Feature::from_gff3_line(x).unwrap();
+            if feat.landmark == landmark {
+                features.push(feat);
+            } else {
+                break;
+            }
+        }
+
+        Ok((features, length))
     }
 }
 

@@ -1,4 +1,24 @@
+use crate::parsers::*;
+
 pub struct CameraMoved;
+
+pub struct LoadLandmark {
+    pub id: String,
+}
+
+pub struct BrowserState {
+    pub landmark: Option<String>,
+    pub gff3: Option<Gff3>,
+}
+
+impl Default for BrowserState {
+    fn default() -> BrowserState {
+        BrowserState {
+            landmark: None,
+            gff3: None,
+        }
+    }
+}
 
 pub enum View {
     SequenceOverview,
@@ -28,8 +48,6 @@ pub struct ClickableLandmark {
 
 impl ClickableLandmark {
     pub fn from(id: &str) -> Self {
-        ClickableLandmark {
-            id: id.to_string(),
-        }
+        ClickableLandmark { id: id.to_string() }
     }
 }

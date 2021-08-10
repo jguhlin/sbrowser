@@ -6,8 +6,8 @@ use bevy_mod_picking::*;
 
 use crate::core::states::*;
 use crate::parsers::*;
-use crate::utils::label_placer::*;
 use crate::structs::*;
+use crate::utils::label_placer::*;
 
 enum SequenceType {
     Genome,
@@ -42,7 +42,9 @@ impl Plugin for SequenceOverviewPlugin {
 pub fn print_events(
     mut events: EventReader<PickingEvent>,
     mut state: ResMut<State<AppState>>,
-    query: Query<(&ClickableLandmark)>,
+    mut ev: EventWriter<LoadLandmark>,
+    query: Query<&ClickableLandmark>,
+    mut bstate: ResMut<BrowserState>,
 ) {
     for event in events.iter() {
         if let PickingEvent::Selection(SelectionEvent::JustSelected(x)) = *event {
@@ -51,6 +53,8 @@ pub fn print_events(
             state.replace(AppState::SequenceView).unwrap();
             let j = query.get(x).unwrap();
             println!("{:#?}", j);
+            ev.send(LoadLandmark { id: j.id.clone() });
+            bstate.landmark = Some(j.id.clone());
         }
     }
 }
@@ -83,7 +87,6 @@ fn setup(
     let genome = genome.unwrap();
 
     for (i, landmark) in genome.landmarks.iter().enumerate() {
-
         // 5 per row
         let row = i / 5;
         let col = i % 5;
@@ -106,7 +109,7 @@ fn setup(
                     ..Default::default()
                 }),
                 transform: Transform {
-                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),                   
+                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
                     translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
                     scale: Vec3::new(1., 1., 1.),
                 },
@@ -121,7 +124,11 @@ fn setup(
 
         commands
             .spawn_bundle(TextBundle {
-                text: Text::with_section(landmark.0.to_string(), text_style.clone(), text_alignment),
+                text: Text::with_section(
+                    landmark.0.to_string(),
+                    text_style.clone(),
+                    text_alignment,
+                ),
                 style: Style {
                     position: Rect {
                         bottom: Val::Px(0.),
