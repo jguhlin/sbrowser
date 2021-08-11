@@ -7,7 +7,7 @@ pub struct LoadLandmark {
 }
 
 pub struct BrowserState {
-    pub landmark: Option<String>,
+    pub landmark: Option<(String, usize)>, // ID, length
     pub gff3: Option<Gff3>,
 }
 
@@ -44,10 +44,11 @@ impl Default for UISetting {
 #[derive(PartialEq, Debug)]
 pub struct ClickableLandmark {
     pub id: String,
+    pub length: usize,
 }
 
 impl ClickableLandmark {
-    pub fn from(id: &str) -> Self {
-        ClickableLandmark { id: id.to_string() }
+    pub fn from(id: &str, length: usize) -> Self {
+        ClickableLandmark { id: id.to_string(), length }
     }
 }

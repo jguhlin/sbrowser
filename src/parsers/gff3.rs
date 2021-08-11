@@ -4,7 +4,6 @@ use twox_hash::RandomXxh3HashBuilder64;
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::hash::BuildHasherDefault;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 
 use super::feature::*;
@@ -12,7 +11,7 @@ use super::feature::*;
 #[derive(Clone, Debug)]
 pub struct Gff3 {
     pub filename: String,
-    pub landmarks: Vec<(String, usize, usize)>, // Landmark name, byte offset, length of data
+    pub landmarks: Vec<(String, usize, usize, usize, usize)>, // Landmark name, byte offset, length of data, est. length of landmark, number of features
 }
 
 impl Gff3 {
@@ -32,8 +31,13 @@ impl Gff3 {
         let mut line_number: usize = 0;
 
         let mut landmarks: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
+        let mut est_lengths: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
+        let mut num_features: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
 
         let mut current_offset: usize = 0;
+
+        let mut chr_length: usize = 0;
+        let mut features_count: usize = 0;
 
         // while let Some(Ok(line)) = lines.next() {
         let mut line: Vec<u8> = Vec::with_capacity(8192);
@@ -83,13 +87,23 @@ impl Gff3 {
             }
 
             // Parse GFF3 Lines to identify Landmark starting sites (and landmarks)
-            if let Some((landmark, _)) = line.split_once("\t") {
-                if !landmarks.contains_key(landmark) {
-                    landmarks.insert(landmark.to_string(), current_offset);
-                }
+            // TODO: This will need much nicer error handling...
+            let line_parsed: Vec<&str> = line.splitn(6, "\t").collect();
+            let landmark = line_parsed[0];
+            let start = line_parsed[3].parse::<usize>().expect("Invalid start position");
+            let end = line_parsed[4].parse::<usize>().expect("Invalid end position");
+
+            //if let Some((landmark, _)) = line.split_once("\t") {
+            if !landmarks.contains_key(landmark) {
+                landmarks.insert(landmark.to_string(), current_offset);
+                num_features.insert(landmark.to_string(), features_count);
+                est_lengths.insert(landmark.to_string(), chr_length);
+                features_count = 0;
+                chr_length = 0;
             } else {
-                println!("Error while parsing GFF File -- Line {}", line_number);
-                continue;
+                features_count = features_count.saturating_add(1);
+                chr_length = std::cmp::max(chr_length, start);
+                chr_length = std::cmp::max(chr_length, end);
             }
         }
 
@@ -107,7 +121,10 @@ impl Gff3 {
         lengths.push(current_offset - landmarks.last().unwrap().1);
 
         for (n, x) in landmarks.into_iter().enumerate() {
-            landmarks_final_vec.push((x.0, x.1, lengths[n]));
+            let chr_size = *est_lengths.get(&x.0).unwrap();
+            let num_feat = *num_features.get(&x.0).unwrap();
+
+            landmarks_final_vec.push((x.0, x.1, lengths[n], chr_size, num_feat));
         }
 
         landmarks_final_vec.sort_by_key(|x| x.2);
@@ -119,19 +136,17 @@ impl Gff3 {
         })
     }
 
-    pub fn parse_region(&self, landmark: &str) -> Result<(Vec<Feature>, usize), String> {
+    pub fn parse_region(&self, landmark: &str) -> Result<Vec<Feature>, String> {
         let mut file = match File::open(&self.filename) {
             Ok(x) => BufReader::new(x),
             Err(_) => return Err(format!("Unable to open file {}", &self.filename)),
         };
 
         let mut features = Vec::new();
-        let mut length = 0;
 
-        for (id, pos, l) in self.landmarks.iter() {
+        for (id, pos, l, _, _) in self.landmarks.iter() {
             if id == landmark {
-                file.seek(SeekFrom::Start(*pos as u64));
-                length = *l;
+                file.seek(SeekFrom::Start(*pos as u64)).expect("Seek IO not working!");
                 break;
             }
         }
@@ -139,10 +154,16 @@ impl Gff3 {
         let mut lines = file.byte_lines();
 
         while let Some(line) = lines.next() {
-            let x = match from_utf8(&line.unwrap()) {
+            let line = line.unwrap();
+
+            if line[0] == b'#' {
+                continue;
+            }
+
+            let x = match from_utf8(&line) {
                 Ok(x) => x.trim(),
                 Err(err) => {
-                    println!("Unable to parse a line from GFF3 file...");
+                    println!("Unable to parse a line from GFF3 file... {}", err);
                     continue;
                 }
             };
@@ -155,7 +176,7 @@ impl Gff3 {
             }
         }
 
-        Ok((features, length))
+        Ok(features)
     }
 }
 

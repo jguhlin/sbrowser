@@ -83,8 +83,8 @@ fn draw_gff3_track(
         return;
     }
 
-    let landmark = bstate.landmark.clone().unwrap();
-    let (features, length) = bstate
+    let (landmark, length) = bstate.landmark.clone().unwrap();
+    let mut features = bstate
         .gff3
         .as_ref()
         .unwrap()
@@ -92,6 +92,11 @@ fn draw_gff3_track(
         .unwrap();
 
     println!("{}", features.len());
+
+    for feature in features.iter_mut() {
+        
+    }
+   
 
     for feature in features {
         if feature.feature_type != "gene" {

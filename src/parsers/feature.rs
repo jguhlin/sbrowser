@@ -7,6 +7,7 @@ pub struct Feature {
     pub end: usize,
     pub feature_type: String,
     pub subfeatures: Option<Vec<Feature>>,
+    pub y_offset: usize,
 }
 
 impl Feature {
@@ -20,6 +21,7 @@ impl Feature {
             end: usize::from_str(split[4]).unwrap(),
             feature_type: split[2].to_string(),
             subfeatures: None,
+            y_offset: 0,
         })
     }
 }

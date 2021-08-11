@@ -63,7 +63,7 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(SequenceOverviewPlugin)
         .add_plugin(SequenceViewPlugin)
-        .add_plugin(WorldInspectorPlugin::new())
+        // .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
         // .add_startup_system(draw_chromosome.system())

@@ -54,7 +54,7 @@ pub fn print_events(
             let j = query.get(x).unwrap();
             println!("{:#?}", j);
             ev.send(LoadLandmark { id: j.id.clone() });
-            bstate.landmark = Some(j.id.clone());
+            bstate.landmark = Some((j.id.clone(), j.length));
         }
     }
 }
@@ -119,7 +119,7 @@ fn setup(
             .insert(BoundVol::default())
             .insert(LabelBase)
             .insert(SequenceOverviewItem)
-            .insert(ClickableLandmark::from(&landmark.0))
+            .insert(ClickableLandmark::from(&landmark.0, landmark.3))
             .id();
 
         commands
