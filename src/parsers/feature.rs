@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Feature {
     pub name: String,
     pub landmark: String,

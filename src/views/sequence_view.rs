@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
+use rayon::prelude::*;
 
 use crate::core::states::*;
 use crate::structs::*;
@@ -33,13 +34,20 @@ fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    bstate: Res<BrowserState>,
     asset_server: Res<AssetServer>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
+    ui_setting: Res<UISetting>,
 ) {
+
+    let (landmark, length) = bstate.landmark.clone().unwrap();
+
+    println!("Chr Length: {}", length);
+
     let id = commands
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Quad {
-                size: Vec2::new(0.2, 10.),
+                size: Vec2::new(0.2, length as f32),
                 flip: false,
             })),
             material: materials.add(StandardMaterial {
@@ -49,7 +57,7 @@ fn setup(
             }),
             transform: Transform {
                 rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
-                translation: Vec3::new(0., 5., 0.),
+                translation: Vec3::new(0., 3., 0.),
                 scale: Vec3::new(1., 1., 1.),
             },
 
@@ -84,28 +92,53 @@ fn draw_gff3_track(
     }
 
     let (landmark, length) = bstate.landmark.clone().unwrap();
-    let mut features = bstate
+    let features = bstate
         .gff3
         .as_ref()
         .unwrap()
         .parse_region(&landmark)
         .unwrap();
 
+    let mut y_offset: Vec<usize> = vec![0; features.len()];
+
     println!("{}", features.len());
+    
 
-    for feature in features.iter_mut() {
-        
-    }
-   
+    // TODO: Replace with bevy's par_iter_combinations in 0.6
+    // TODO: Probably parallelize this or something...
+    for feature in features.iter() {
 
-    for feature in features {
+        let fstart = std::cmp::min(feature.start, feature.end);
+        let fend = std::cmp::max(feature.start, feature.end);
+
+        for (n, f2) in features.iter().enumerate() {
+            if feature == f2 {
+                continue
+            }
+
+            let f2start = std::cmp::min(f2.start, f2.end);
+            let f2end = std::cmp::max(f2.start, f2.end);
+
+            // If f2 is contained completely within f1, it drops down...
+            // TODO: Need to check for any overlap...
+            if f2start >= fstart && f2end <= fend {
+                y_offset[n] += 1;
+            }
+        }
+    }   
+
+    for (n, feature) in features.iter().enumerate() {
         if feature.feature_type != "gene" {
             continue;
         }
 
-        let width = (feature.end - feature.start) as f32 / ui_setting.zoom_factor;
+        let width = (feature.end - feature.start) as f32;
+        println!("Gene Length: {}", width);
 
-        let coords = calc_coords_primitive(86460390 as f32, ui_setting.zoom_factor, feature.start as f32, feature.end as f32);
+        let mut coords = calc_coords_primitive(length as f32, feature.start as f32, feature.end as f32);
+
+        coords.y += y_offset[n] as f32 * 0.1;
+        // println!("{:#?}", coords);
 
         let id = commands
             .spawn_bundle(PbrBundle {
@@ -133,7 +166,7 @@ fn draw_gff3_track(
     }
 }
 
-fn cleanup(mut commands: Commands, q: Query<(Entity), With<SequenceViewItem>>) {
+fn cleanup(mut commands: Commands, q: Query<Entity, With<SequenceViewItem>>) {
     for e in q.iter() {
         commands.entity(e).despawn_recursive();
     }

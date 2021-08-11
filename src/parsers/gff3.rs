@@ -35,6 +35,7 @@ impl Gff3 {
         let mut num_features: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
 
         let mut current_offset: usize = 0;
+        let mut current_landmark: String = "".to_string();
 
         let mut chr_length: usize = 0;
         let mut features_count: usize = 0;
@@ -94,17 +95,20 @@ impl Gff3 {
             let end = line_parsed[4].parse::<usize>().expect("Invalid end position");
 
             //if let Some((landmark, _)) = line.split_once("\t") {
-            if !landmarks.contains_key(landmark) {
-                landmarks.insert(landmark.to_string(), current_offset);
-                num_features.insert(landmark.to_string(), features_count);
-                est_lengths.insert(landmark.to_string(), chr_length);
-                features_count = 0;
-                chr_length = 0;
-            } else {
-                features_count = features_count.saturating_add(1);
-                chr_length = std::cmp::max(chr_length, start);
-                chr_length = std::cmp::max(chr_length, end);
+            if landmark != &current_landmark {
+                if !current_landmark.is_empty() {
+                    landmarks.insert(current_landmark.to_string(), current_offset);
+                    num_features.insert(current_landmark.to_string(), features_count);
+                    est_lengths.insert(current_landmark.to_string(), chr_length);
+                    features_count = 0;
+                    chr_length = 0;
+                }
+                current_landmark = landmark.to_string();
             }
+
+            features_count = features_count.saturating_add(1);
+            chr_length = std::cmp::max(chr_length, start);
+            chr_length = std::cmp::max(chr_length, end);
         }
 
         let mut landmarks: Vec<(String, usize)> = landmarks.drain().collect();

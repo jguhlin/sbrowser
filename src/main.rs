@@ -123,16 +123,15 @@ pub fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
     Vec3::new(center / zf, -50.0, 1.0)
 }
 
-pub fn calc_coords_primitive(chr_length: f32, zf: f32, gene_start: f32, gene_end: f32) -> Vec3 {
-    let width = chr_length as f32;
-
-    let zero = -width / 2.0;
+pub fn calc_coords_primitive(chr_length: f32, gene_start: f32, gene_end: f32) -> Vec3 {
+    let zero = -chr_length as f32 / 2.0;
 
     let start_loc = zero + (gene_start as f32);
 
     let center = start_loc + ((gene_end - gene_start) as f32 / 2.0);
 
-    Vec3::new(center / zf, 2.0, 1.0)
+    //Vec3::new(center / zf, 2.0, 1.0)
+    Vec3::new(center, 2.0, 0.0)
 }
 
 
@@ -142,6 +141,7 @@ fn camera_move(
     windows: Res<Windows>,
     mut query: Query<(&Camera, &mut Transform)>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
+    ui_setting: Res<UISetting>,
 ) {
     if keys.get_pressed().len() == 0 {
         return;
@@ -158,11 +158,13 @@ fn camera_move(
             match key {
                 KeyCode::W => velocity += vert,
                 KeyCode::S => velocity -= vert,
-                KeyCode::A => velocity -= horiz,
-                KeyCode::D => velocity += horiz,
+                KeyCode::A => velocity -= horiz * ui_setting.zoom_factor,
+                KeyCode::D => velocity += horiz * ui_setting.zoom_factor,
                 _ => (),
             }
         }
+
+        // println!("ZF: {}", ui_setting.zoom_factor);
 
         // velocity = velocity.normalize();
 
@@ -179,15 +181,22 @@ fn mouse_scroll(
     windows: Res<Windows>,
     mut ui_setting: ResMut<UISetting>,
     mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
+    mut ev_cameramoved: EventWriter<CameraMoved>,
 ) {
     let window = windows.get_primary().unwrap();
 
     let (_camera, mut transform) = query.single_mut().unwrap();
 
     for event in mouse_wheel_events.iter() {
-        ui_setting.zoom_factor += event.y;
+        ui_setting.zoom_factor += -event.y;
         // transform.scale += -event.y * Vec3::new(0.01, 0.00, 0.0);
         transform.scale.x += -event.y * 0.01 * transform.scale.x;
+
+        ev_cameramoved.send(CameraMoved);
+
+
+        // TODO: Maybe remove this? This scales vertical, useful for debugging....
+        // transform.scale.y += -event.y * 0.01 * transform.scale.y;
     }
 }
 
