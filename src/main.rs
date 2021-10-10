@@ -4,7 +4,7 @@ use structs::*;
 
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
+// use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use bevy_mod_picking::*;
 use bevy_prototype_lyon::prelude::*;
@@ -20,6 +20,7 @@ mod views;
 use crate::core::states::*;
 use crate::genome::*;
 use crate::hover::*;
+use crate::parsers::feature;
 use crate::parsers::*;
 use crate::structs::*;
 use crate::utils::label_placer::*;
@@ -63,7 +64,7 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(SequenceOverviewPlugin)
         .add_plugin(SequenceViewPlugin)
-        // .add_plugin(WorldInspectorPlugin::new())
+        .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup.system())
         // .add_startup_system(draw_chromosome.system())
@@ -81,6 +82,7 @@ fn main() {
 
     // registering custom component to be able to edit it in inspector
     registry.register::<Label>();
+    registry.register::<Feature>();
 
     app.run();
 }
@@ -103,11 +105,10 @@ fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
     commands
         .spawn_bundle(camera_bundle)
         .insert(MainCamera)
-        .insert(FlyCam)
+        // .insert(FlyCam)
         .insert_bundle(PickingCameraBundle::default());
 
     // Trigger label placements
-    ev_cameramoved.send(CameraMoved);
     ev_cameramoved.send(CameraMoved);
 }
 
@@ -134,12 +135,11 @@ pub fn calc_coords_primitive(chr_length: f32, gene_start: f32, gene_end: f32) ->
     Vec3::new(center, 2.0, 0.0)
 }
 
-
 fn camera_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     windows: Res<Windows>,
-    mut query: Query<(&Camera, &mut Transform)>,
+    mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
     ui_setting: Res<UISetting>,
 ) {
@@ -152,7 +152,8 @@ fn camera_move(
     for (_camera, mut transform) in query.iter_mut() {
         let mut velocity = Vec3::ZERO;
         let vert = Vec3::new(0.0, 0.8, 0.0);
-        let horiz = Vec3::new(0.8, 0.0, 0.0);
+        let horiz = Vec3::new(1.05, 0.0, 0.0);
+        let zoom = Vec3::new(0.0, 0.0, 0.05);
 
         for key in keys.get_pressed() {
             match key {
@@ -160,6 +161,8 @@ fn camera_move(
                 KeyCode::S => velocity -= vert,
                 KeyCode::A => velocity -= horiz * ui_setting.zoom_factor,
                 KeyCode::D => velocity += horiz * ui_setting.zoom_factor,
+                KeyCode::Z => velocity += zoom * ui_setting.zoom_factor,
+                KeyCode::X => velocity -= zoom * ui_setting.zoom_factor,
                 _ => (),
             }
         }
@@ -193,7 +196,6 @@ fn mouse_scroll(
         transform.scale.x += -event.y * 0.01 * transform.scale.x;
 
         ev_cameramoved.send(CameraMoved);
-
 
         // TODO: Maybe remove this? This scales vertical, useful for debugging....
         // transform.scale.y += -event.y * 0.01 * transform.scale.y;

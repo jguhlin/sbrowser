@@ -89,15 +89,21 @@ impl Gff3 {
 
             // Parse GFF3 Lines to identify Landmark starting sites (and landmarks)
             // TODO: This will need much nicer error handling...
-            let line_parsed: Vec<&str> = line.splitn(6, "\t").collect();
+            let line_parsed: Vec<&str> = line.splitn(6, '\t').collect();
             let landmark = line_parsed[0];
-            let start = line_parsed[3].parse::<usize>().expect("Invalid start position");
-            let end = line_parsed[4].parse::<usize>().expect("Invalid end position");
+            let start = line_parsed[3]
+                .parse::<usize>()
+                .expect("Invalid start position");
+            let end = line_parsed[4]
+                .parse::<usize>()
+                .expect("Invalid end position");
 
             //if let Some((landmark, _)) = line.split_once("\t") {
             if landmark != &current_landmark {
+                println!("{} {}", landmark, current_offset);
+                landmarks.insert(landmark.to_string(), current_offset);
+
                 if !current_landmark.is_empty() {
-                    landmarks.insert(current_landmark.to_string(), current_offset);
                     num_features.insert(current_landmark.to_string(), features_count);
                     est_lengths.insert(current_landmark.to_string(), chr_length);
                     features_count = 0;
@@ -110,6 +116,9 @@ impl Gff3 {
             chr_length = std::cmp::max(chr_length, start);
             chr_length = std::cmp::max(chr_length, end);
         }
+
+        num_features.insert(current_landmark.to_string(), features_count);
+        est_lengths.insert(current_landmark.to_string(), chr_length);
 
         let mut landmarks: Vec<(String, usize)> = landmarks.drain().collect();
         landmarks.sort_by_key(|x| x.1);
@@ -125,6 +134,7 @@ impl Gff3 {
         lengths.push(current_offset - landmarks.last().unwrap().1);
 
         for (n, x) in landmarks.into_iter().enumerate() {
+            println!("Looking for... {}", x.0);
             let chr_size = *est_lengths.get(&x.0).unwrap();
             let num_feat = *num_features.get(&x.0).unwrap();
 
@@ -148,9 +158,11 @@ impl Gff3 {
 
         let mut features = Vec::new();
 
-        for (id, pos, l, _, _) in self.landmarks.iter() {
+        for (id, pos, _l, _, _) in self.landmarks.iter() {
             if id == landmark {
-                file.seek(SeekFrom::Start(*pos as u64)).expect("Seek IO not working!");
+                println!("Seeking!");
+                file.seek(SeekFrom::Start(*pos as u64))
+                    .expect("Seek IO not working!");
                 break;
             }
         }
@@ -164,7 +176,7 @@ impl Gff3 {
                 continue;
             }
 
-            let x = match from_utf8(&line) {
+            let x = match from_utf8(line) {
                 Ok(x) => x.trim(),
                 Err(err) => {
                     println!("Unable to parse a line from GFF3 file... {}", err);
@@ -174,11 +186,16 @@ impl Gff3 {
 
             let feat = Feature::from_gff3_line(x).unwrap();
             if feat.landmark == landmark {
-                features.push(feat);
+                if feat.feature_type == "gene" {
+                    features.push(feat);
+                }
             } else {
+                println!("All done... {} {}", feat.landmark, landmark);
                 break;
             }
         }
+
+        println!("Parsed {} ", features.len());
 
         Ok(features)
     }

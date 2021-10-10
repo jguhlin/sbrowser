@@ -49,6 +49,9 @@ pub struct ClickableLandmark {
 
 impl ClickableLandmark {
     pub fn from(id: &str, length: usize) -> Self {
-        ClickableLandmark { id: id.to_string(), length }
+        ClickableLandmark {
+            id: id.to_string(),
+            length,
+        }
     }
 }

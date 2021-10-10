@@ -1,6 +1,7 @@
+use bevy_inspector_egui::Inspectable;
 use std::str::FromStr;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Inspectable, Default)]
 pub struct Feature {
     pub name: String,
     pub landmark: String,
@@ -13,7 +14,7 @@ pub struct Feature {
 
 impl Feature {
     pub fn from_gff3_line(line: &str) -> Result<Feature, String> {
-        let split = line.splitn(9, "\t").collect::<Vec<&str>>();
+        let split = line.splitn(9, '\t').collect::<Vec<&str>>();
 
         Ok(Feature {
             name: String::from("Hello"),
