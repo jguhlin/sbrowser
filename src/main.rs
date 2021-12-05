@@ -38,7 +38,7 @@ fn main() {
     app.insert_resource(Msaa { samples: 8 })
         .insert_resource(AmbientLight {
             color: Color::WHITE,
-            brightness: 0.5 / 5.0f32,
+            brightness: 0.5f32,
         })
         .insert_resource(genome)
         // .insert_resource(genome)

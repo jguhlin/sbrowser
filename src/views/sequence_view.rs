@@ -48,6 +48,11 @@ fn setup(
 
     println!("Chr Length: {}", length);
 
+/*    commands.spawn().insert(bevy::pbr::AmbientLight {
+        color: Color::WHITE,
+        brightness: 1000.0,
+     }).insert(Name::from("AmbientLight")); */
+
     let id = commands
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Quad {
@@ -84,7 +89,7 @@ fn setup(
     // Draw vertical lines every 10kbp bases...
     // TODO: But only in visible region
     //for i in (0..length).step_by(100) {
-    for i in (0..5000).step_by(100) {
+    for i in (0..length).step_by(10000).take(10) {
         let x = i as f32;
         commands
             .spawn_bundle(PbrBundle {
@@ -116,7 +121,16 @@ fn setup(
     }
 
     let (camera, mut transform) = camera_query.single_mut().unwrap();
+    
     println!("Camera: {:#?}", camera.projection_matrix);
+    println!("Transform: {:#?}", transform);
+    //*transform = transform.looking_at(Vec3::new(length as f32 / 2.0, 0., 0.), Vec3::new(0., 1., 0.));
+    transform.translation = Vec3::new(length as f32 / 2.0, 0., 15.);
+    println!("After Transform: {:#?}", transform);
+    let x = camera.projection_matrix.transform_point3(Vec3::new(length as f32 / 2., 0., 0.));
+    let scale = x.x / 15.;
+    transform.scale.x = scale;
+    println!("{:#?}", camera.projection_matrix.transform_point3(Vec3::new(length as f32 / 2., 0., 0.)));
     // transform.translation.x -= length as f32 / 2.0;
 }
 
