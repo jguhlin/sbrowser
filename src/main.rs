@@ -29,9 +29,11 @@ use crate::views::*;
 fn main() {
     // let genome = genome::get_genome_from_gff3("converted.sorted.s.gff3");
 
-    let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
+    //let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
+    let genome = Gfa::parse("/mnt/data/kakapo-assemblies/RichardHenry/out.gfa").expect("Unable to parse GFA");
+
     let mut bstate = BrowserState::default();
-    bstate.gff3 = Some(genome.clone());
+    //bstate.gff3 = Some(genome.clone());
 
     let mut app = App::build();
 
