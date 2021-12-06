@@ -8,54 +8,9 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::num::NonZeroUsize;
 use std::sync::Arc;
+use crate::structs::*;
 
 use super::feature::*;
-
-#[derive(Clone, Debug, Copy)]
-pub enum Orientation {
-    Positive, 
-    Negative,
-}
-
-impl Default for Orientation {
-    fn default() -> Self {
-        Orientation::Positive
-    }
-}
-
-impl FromStr for Orientation {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "+" => Ok(Orientation::Positive),
-            "-" => Ok(Orientation::Negative),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Link {
-    pub from: String,
-    pub from_orient: Orientation,
-    pub to: String,
-    pub to_orient: Orientation,
-    pub overlap: Option<String>,
-}
-
-// From: https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
-#[derive(Clone, Debug, Default)]
-pub struct Segment {
-    pub length: Option<NonZeroUsize>,
-    pub read_count: Option<NonZeroUsize>,
-    pub fragment_count: Option<NonZeroUsize>,
-    pub kmer_count: Option<NonZeroUsize>,
-    pub checksum: u64, //SHA-256 checksum of the sequence
-    pub path: Option<String>, // URI or local file-system path of the sequence...
-    pub reference_name: Option<String>, // SN:Z: field
-    pub sequence_order: Option<usize>, // SO:i: field
-}
 
 #[derive(Clone, Debug)]
 pub struct Gfa {
@@ -66,7 +21,7 @@ pub struct Gfa {
 }
 
 impl Gfa {
-    pub fn parse<T>(filename: T) -> Result<Gfa, String>
+    pub fn parse<T>(filename: T) -> Result<DisplayDatabase, String>
     where
         T: ToString,
     {
@@ -92,6 +47,7 @@ impl Gfa {
                 let mut segment = Segment::default();
                 let id = from_utf8(split[1]).unwrap();
                 let length = split[2].len();
+                segment.id = id.to_string();
                 lengths.insert(id.to_string(), length);
 
                 for tag in split[3..].iter() {
@@ -99,6 +55,7 @@ impl Gfa {
                     println!("{:#?}", tag);
                     if tag.starts_with("LN:i:") {
                         segment.length = Some(tag[5..].parse::<NonZeroUsize>().unwrap());
+                        assert!(segment.length.unwrap().get() == length);
                     } else if tag.starts_with("RC:i:") {
                         segment.read_count = Some(tag[5..].parse::<NonZeroUsize>().unwrap());
                     } else if tag.starts_with("FC:i:") {
@@ -128,11 +85,10 @@ impl Gfa {
                 links.push(Arc::clone(&link));
                 links_atlas.entry(link.from.clone()).or_default().push(Arc::clone(&link));
                 links_atlas.entry(link.to.clone()).or_default().push(Arc::clone(&link));
-
             }
         }
 
-        Ok(Gfa {
+        Ok(DisplayDatabase {
             filename,
             landmarks,
             links_atlas,
