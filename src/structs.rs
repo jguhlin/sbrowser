@@ -14,6 +14,8 @@ pub struct DisplayDatabase {
     pub links: Vec<Link>,
 }
 
+pub struct CheckLink;
+
 #[derive(Clone, Debug, Copy)]
 pub enum Orientation {
     Positive, 
@@ -65,6 +67,7 @@ pub struct Segment {
 pub struct BrowserState {
     pub landmark: Option<(String, usize)>, // ID, length
     pub gff3: Option<Gff3>,
+    pub gfa: Option<Gfa>,
 }
 
 impl Default for BrowserState {
@@ -72,6 +75,7 @@ impl Default for BrowserState {
         BrowserState {
             landmark: None,
             gff3: None,
+            gfa: None,
         }
     }
 }

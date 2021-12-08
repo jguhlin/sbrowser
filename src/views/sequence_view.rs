@@ -156,6 +156,11 @@ fn create_gff3_entities(mut commands: Commands, bstate: Res<BrowserState>) {
         return;
     }
 
+    if bstate.gff3.is_none() {
+        println!("bstate gff3 is none");
+        return;
+    }
+
     let (landmark, length) = bstate.landmark.clone().unwrap();
     let features = bstate
         .gff3

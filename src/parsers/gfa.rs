@@ -15,13 +15,14 @@ use super::feature::*;
 #[derive(Clone, Debug)]
 pub struct Gfa {
     pub filename: String,
-    pub landmarks: HashMap<String, Segment, RandomXxh3HashBuilder64>,
+    pub segments: HashMap<String, Segment, RandomXxh3HashBuilder64>,
+    pub lengths: HashMap<String, usize, RandomXxh3HashBuilder64>,
     pub links: Vec<Arc<Link>>,
     pub links_atlas: HashMap<String, Vec<Arc<Link>>, RandomXxh3HashBuilder64>,
 }
 
 impl Gfa {
-    pub fn parse<T>(filename: T) -> Result<DisplayDatabase, String>
+    pub fn parse<T>(filename: T) -> Result<Gfa, String>
     where
         T: ToString,
     {
@@ -32,7 +33,7 @@ impl Gfa {
             Err(_) => return Err(format!("Unable to open file {}", &filename)),
         };
 
-        let mut landmarks: HashMap<String, Segment, RandomXxh3HashBuilder64> = Default::default();
+        let mut segments: HashMap<String, Segment, RandomXxh3HashBuilder64> = Default::default();
         let mut lengths: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
         let mut links: Vec<Arc<Link>> = Vec::with_capacity(1 * 1024 * 1024);
         let mut links_atlas: HashMap<String, Vec<Arc<Link>>, RandomXxh3HashBuilder64> = Default::default();
@@ -68,7 +69,7 @@ impl Gfa {
                         segment.path = Some(tag[5..].to_string());
                     }
                 }
-                landmarks.insert(id.to_string(), segment);
+                segments.insert(id.to_string(), segment);
                 // println!("{} {}", id, length);
             } else if split[0] == b"L" {
                 // Link line
@@ -88,11 +89,12 @@ impl Gfa {
             }
         }
 
-        Ok(DisplayDatabase {
+        Ok(Gfa {
             filename,
-            landmarks,
-            links_atlas,
+            segments,
+            lengths,
             links,
+            links_atlas,
         })
     }
 }

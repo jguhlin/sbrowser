@@ -34,6 +34,7 @@ fn main() {
 
     let mut bstate = BrowserState::default();
     //bstate.gff3 = Some(genome.clone());
+    bstate.gfa = Some(genome.clone());
 
     let mut app = App::build();
 

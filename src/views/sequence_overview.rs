@@ -69,7 +69,8 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
-    genome: Option<Res<Gff3>>,
+    gff3: Option<Res<Gff3>>,
+    gfa: Option<Res<Gfa>>,
 ) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let text_style = TextStyle {
@@ -80,71 +81,149 @@ fn setup(
 
     let text_alignment = TextAlignment::default();
 
-    if genome.is_none() {
+    if gff3.is_none() && gfa.is_none() {
         return;
     }
 
-    let genome = genome.unwrap();
+    if gff3.is_some() {
 
-    for (i, landmark) in genome.landmarks.iter().enumerate() {
-        // 5 per row
-        let row = i / 5;
-        let col = i % 5;
+        let genome = gff3.unwrap();
 
-        println!("{:#?} {:#?}", row, col);
+        for (i, landmark) in genome.landmarks.iter().enumerate() {
+            // 5 per row
+            let row = i / 5;
+            let col = i % 5;
 
-        let id = commands
-            .spawn_bundle(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Capsule {
-                    // latitudes: 2,
-                    // longitudes: 16,
-                    depth: 1.4,
-                    radius: 0.4,
-                    uv_profile: CapsuleUvProfile::Uniform,
-                    ..Default::default() //subdivisions: 4,
-                })),
-                material: materials.add(StandardMaterial {
-                    base_color: Color::BISQUE,
-                    // emissive: Color::WHITE * 10.0f32,
+            println!("{:#?} {:#?}", row, col);
+
+            let id = commands
+                .spawn_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Capsule {
+                        // latitudes: 2,
+                        // longitudes: 16,
+                        depth: 1.4,
+                        radius: 0.4,
+                        uv_profile: CapsuleUvProfile::Uniform,
+                        ..Default::default() //subdivisions: 4,
+                    })),
+                    material: materials.add(StandardMaterial {
+                        base_color: Color::BISQUE,
+                        // emissive: Color::WHITE * 10.0f32,
+                        ..Default::default()
+                    }),
+                    transform: Transform {
+                        rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
+                        translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
+                        scale: Vec3::new(1., 1., 1.),
+                    },
                     ..Default::default()
-                }),
-                transform: Transform {
-                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
-                    translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
-                    scale: Vec3::new(1., 1., 1.),
-                },
-                ..Default::default()
-            })
-            .insert_bundle(PickableBundle::default())
-            .insert(BoundVol::default())
-            .insert(LabelBase)
-            .insert(SequenceOverviewItem)
-            .insert(ClickableLandmark::from(&landmark.0, landmark.3))
-            .id();
+                })
+                .insert_bundle(PickableBundle::default())
+                .insert(BoundVol::default())
+                .insert(LabelBase)
+                .insert(SequenceOverviewItem)
+                .insert(ClickableLandmark::from(&landmark.0, landmark.3))
+                .id();
 
-        commands
-            .spawn_bundle(TextBundle {
-                text: Text::with_section(
-                    landmark.0.to_string(),
-                    text_style.clone(),
-                    text_alignment,
-                ),
-                style: Style {
-                    position: Rect {
-                        bottom: Val::Px(0.),
-                        left: Val::Px(0.),
+            commands
+                .spawn_bundle(TextBundle {
+                    text: Text::with_section(
+                        landmark.0.to_string(),
+                        text_style.clone(),
+                        text_alignment,
+                    ),
+                    style: Style {
+                        position: Rect {
+                            bottom: Val::Px(0.),
+                            left: Val::Px(0.),
+                            ..Default::default()
+                        },
+                        flex_grow: 0.,
+                        flex_shrink: 0.,
+                        position_type: PositionType::Absolute,
                         ..Default::default()
                     },
-                    flex_grow: 0.,
-                    flex_shrink: 0.,
-                    position_type: PositionType::Absolute,
+                    transform: Transform::default(),
                     ..Default::default()
-                },
-                transform: Transform::default(),
-                ..Default::default()
-            })
-            .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
-            .insert(SequenceOverviewItem);
+                })
+                .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
+                .insert(SequenceOverviewItem);
+        }
+    }
+
+    if gfa.is_some() {
+        let genome = gfa.unwrap();
+
+        for (i, landmark) in genome.segments.keys().enumerate() {
+
+            let length = *genome.lengths.get(landmark).unwrap();
+            if length < 500 { // IMPORTANT: Filter out ones 500bp and below
+                continue;
+            }
+
+            // 5 per row
+            let row = i / 5;
+            let col = i % 5;
+
+            println!("{:#?} {:#?}", row, col);
+
+            let id = commands
+                .spawn_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Capsule {
+                        // latitudes: 2,
+                        // longitudes: 16,
+                        depth: 1.4,
+                        radius: 0.4,
+                        uv_profile: CapsuleUvProfile::Uniform,
+                        ..Default::default() //subdivisions: 4,
+                    })),
+                    material: materials.add(StandardMaterial {
+                        base_color: Color::BISQUE,
+                        // emissive: Color::WHITE * 10.0f32,
+                        ..Default::default()
+                    }),
+                    transform: Transform {
+                        rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
+                        translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
+                        scale: Vec3::new(1., 1., 1.),
+                    },
+                    ..Default::default()
+                })
+                .insert_bundle(PickableBundle::default())
+                .insert(BoundVol::default())
+                .insert(LabelBase)
+                .insert(SequenceOverviewItem)
+                .insert(
+                    ClickableLandmark::from(
+                        &landmark, 
+                        *genome.lengths.get(landmark).unwrap()))
+                .id();
+
+            commands
+                .spawn_bundle(TextBundle {
+                    text: Text::with_section(
+                        landmark.to_string(),
+                        text_style.clone(),
+                        text_alignment,
+                    ),
+                    style: Style {
+                        position: Rect {
+                            bottom: Val::Px(0.),
+                            left: Val::Px(0.),
+                            ..Default::default()
+                        },
+                        flex_grow: 0.,
+                        flex_shrink: 0.,
+                        position_type: PositionType::Absolute,
+                        ..Default::default()
+                    },
+                    transform: Transform::default(),
+                    ..Default::default()
+                })
+                .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
+                .insert(SequenceOverviewItem);
+        }
+
     }
 }
 
