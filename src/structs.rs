@@ -23,6 +23,7 @@ pub struct DisplayDatabase {
     pub links: Vec<Link>,
 }
 
+pub struct HasLinks;
 pub struct CheckLinks;
 
 pub struct ID {

@@ -6,6 +6,7 @@ use bevy_mod_picking::*;
 use rand::prelude::*;
 use rand_xoshiro::SplitMix64;
 use rayon::prelude::*;
+use bevy_prototype_debug_lines::*;
 
 use crate::core::states::*;
 use crate::structs::*;
@@ -33,6 +34,7 @@ impl Plugin for SequenceViewPlugin {
             SystemSet::on_update(AppState::SequenceView)
                 .with_system(check_links.system())
                 .with_system(draw_feature.system())
+                .with_system(draw_lines.system())
                 .with_system(collision_check.system()),
         );
     }
@@ -83,8 +85,8 @@ fn collision_check(
     }
 
     for entity in to_move.into_iter() {
-        let amt_y = rng.gen_range(-0.01..0.01);
-        let amt_x = rng.gen_range(-1000.0..1000.0);
+        let amt_y = rng.gen_range(-0.1..0.1);
+        let amt_x = rng.gen_range(-10000.0..10000.0);
         let mut transform = q.q2_mut().get_mut(entity).unwrap();
 
         if rng.gen::<bool>() {
@@ -301,6 +303,42 @@ fn draw_feature(
     }
 }
 
+fn draw_lines(
+    query: Query<(Entity, &Transform, &Collider, &ID), With<HasLinks>>,
+    mut lines: ResMut<DebugLines>,
+    registry: Res<EntityRegistry>,
+    bstate: Res<BrowserState>,
+) {
+    for (e, t, c, id) in query.iter() {
+        let links = bstate.gfa.as_ref().unwrap().links_atlas.get(&id.id).unwrap();
+        for link in links {
+
+            // Only operate on the from's...
+            if link.to == id.id {
+                continue
+            }
+
+            let mut position = t.translation;
+            position.x += c.size.x / 2.;
+            // "y" is in the middle, so leave it
+
+            let linkto = registry.registry.get(&link.to);
+            if linkto.is_none() {
+                continue;
+            }
+
+            let (te, tt, tc, tid) = query.get(*linkto.unwrap()).unwrap();
+
+            let mut target_position = tt.translation;
+            target_position.x -= tc.size.x / 2.0; // Left align
+
+            lines.line(position, target_position, 1.0);
+
+
+        }
+    }
+}
+
 fn check_links(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -332,6 +370,8 @@ fn check_links(
         if links.is_none() {
             return;
         }
+
+        entity.insert(HasLinks);
 
         for link in links.unwrap() {
             commands.spawn().insert(link.clone());
@@ -387,9 +427,12 @@ fn check_links(
                     .insert(Collider {
                         size: Vec2::new(length as f32, 0.4),
                     })
+                    .insert(HasLinks) // By definition...
                     .id();
 
                 registry.registry.insert(segment.id.clone(), id);
+                
+                
             }
 
             let to_entity = registry.registry.get(&link.to);
@@ -444,6 +487,7 @@ fn check_links(
                     .insert(Collider {
                         size: Vec2::new(length as f32, 0.4),
                     })
+                    .insert(HasLinks) // by definition...
                     .id();
 
                 registry.registry.insert(segment.id.clone(), id);

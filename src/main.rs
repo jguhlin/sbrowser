@@ -7,15 +7,13 @@ static GLOBAL: MiMalloc = MiMalloc;
 extern crate jetscii;
 
 use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::Light, prelude::*};
-
-use structs::*;
+use bevy_prototype_debug_lines::*;
 
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 // use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use bevy_mod_picking::*;
-use bevy_prototype_lyon::prelude::*;
 
 mod core;
 mod genome;
@@ -24,6 +22,8 @@ mod parsers;
 mod structs;
 mod utils;
 mod views;
+
+use structs::*;
 
 use crate::core::states::*;
 use crate::genome::*;
@@ -53,6 +53,7 @@ fn main() {
             brightness: 0.5f32,
         })
         .insert_resource(genome)
+        .insert_resource(ClearColor(Color::BLACK))
         // .insert_resource(genome)
         .insert_resource(UISetting::default())
         .insert_resource(bstate)
@@ -72,8 +73,9 @@ fn main() {
         .add_plugin(DebugCursorPickingPlugin)
         .add_plugin(DebugEventsPickingPlugin)
         .add_plugin(LabelPlacerPlugin)
+        .add_plugin(DebugLinesPlugin)
+        // .insert_resource(DebugLines { depth_test: true, ..Default::default() })
         //.add_plugin(HoverPlugin)
-        .add_plugin(ShapePlugin)
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(SequenceOverviewPlugin)
@@ -217,7 +219,7 @@ fn mouse_scroll(
 }
 
 pub struct Highlight;
-
+/* 
 fn hover_highlight(
     mut commands: Commands,
     mut q: Query<(Entity, &mut Hoverable, &mut ShapeColors, &Transform), (Changed<Hoverable>)>,
@@ -255,4 +257,4 @@ fn hover_highlight(
             hov.changed = false;
         }
     }
-}
+} */
