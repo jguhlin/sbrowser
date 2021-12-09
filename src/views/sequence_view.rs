@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
+use rand::prelude::*;
+use rand_xoshiro::SplitMix64;
 use rayon::prelude::*;
 
 use crate::core::states::*;
@@ -28,8 +30,72 @@ impl Plugin for SequenceViewPlugin {
         )
         .add_system_set(SystemSet::on_exit(AppState::SequenceView).with_system(cleanup.system()))
         .add_system_set(
-            SystemSet::on_update(AppState::SequenceView).with_system(draw_feature.system()),
+            SystemSet::on_update(AppState::SequenceView)
+                .with_system(check_links.system())
+                .with_system(draw_feature.system())
+                .with_system(collision_check.system()),
         );
+    }
+}
+
+enum MoveDirection {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+fn collision_check(
+    mut q: QuerySet<(
+        Query<(&Transform, &Collider, Entity)>,
+        Query<(&Transform, &Collider, Entity)>,
+        Query<&mut Transform>,
+    )>,
+) {
+    let mut rng = SplitMix64::from_rng(thread_rng()).unwrap();
+
+    let mut to_move = Vec::new();
+
+    for (transform_a, collider_a, entity_a) in q.q0().iter() {
+        // https://github.com/bevyengine/bevy/blob/c5717b5a9124c7c2f7431c4be07f15243ebd60b5/crates/bevy_sprite/src/collide_aabb.rs
+        let a_min = transform_a.translation.truncate() - collider_a.size / 2.0;
+        let a_max = transform_a.translation.truncate() + collider_a.size / 2.0;
+
+        for (transform_b, collider_b, entity_b) in q.q1().iter() {
+            if entity_a == entity_b {
+                continue;
+            }
+
+            let b_min = transform_b.translation.truncate() - collider_b.size / 2.0;
+            let b_max = transform_b.translation.truncate() + collider_b.size / 2.0;
+
+            if a_min.x < b_max.x && a_max.x > b_min.x && a_min.y < b_max.y && a_max.y > b_min.y {
+                // println!("Collision detected between {:#?} and {:#?}\n{:#?}\n{:#?}\n{:#?}\n{:#?}", entity_a, entity_b, a_min, a_max, b_min, b_max);
+
+                // Top left corner is min.x and max.y
+                // Bottom left corner is min.x and min.y
+                // Top right corner is max.x and max.y
+                // Bottom right corner is max.x and min.y
+
+                to_move.push(entity_b);
+            }
+        }
+    }
+
+    for entity in to_move.into_iter() {
+        let amt_y = rng.gen_range(-0.01..0.01);
+        let amt_x = rng.gen_range(-1000.0..1000.0);
+        let mut transform = q.q2_mut().get_mut(entity).unwrap();
+
+        if rng.gen::<bool>() {
+            transform.translation.x -= amt_x;
+        }
+        if rng.gen::<bool>() {
+            transform.translation.y -= amt_y;
+        }
+        // let mut transform = q.q2_mut().get_mut(*entity).unwrap();
+        // transform.translation.y += rng.gen_range(-0.25..0.25);
+        // transform.translation.x += rng.gen_range(-0.25..0.25);
     }
 }
 
@@ -38,6 +104,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     bstate: Res<BrowserState>,
+    mut registry: ResMut<EntityRegistry>,
     asset_server: Res<AssetServer>,
     mut camera_query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     ui_setting: Res<UISetting>,
@@ -48,10 +115,10 @@ fn setup(
 
     println!("Chr Length: {}", length);
 
-/*    commands.spawn().insert(bevy::pbr::AmbientLight {
-        color: Color::WHITE,
-        brightness: 1000.0,
-     }).insert(Name::from("AmbientLight")); */
+    /*    commands.spawn().insert(bevy::pbr::AmbientLight {
+       color: Color::WHITE,
+       brightness: 1000.0,
+    }).insert(Name::from("AmbientLight")); */
 
     let id = commands
         .spawn_bundle(PbrBundle {
@@ -84,7 +151,14 @@ fn setup(
         .insert(LabelBase)
         .insert(SequenceViewItem)
         .insert(Name::from("Chromosome"))
+        .insert(ID::from(landmark.clone()))
+        .insert(Collider {
+            size: Vec2::new(length as f32, 0.4),
+        })
+        .insert(CheckLinks)
         .id();
+
+    registry.registry.insert(landmark, id);
 
     // Draw vertical lines every 10kbp bases...
     // TODO: But only in visible region
@@ -121,16 +195,23 @@ fn setup(
     }
 
     let (camera, mut transform) = camera_query.single_mut().unwrap();
-    
+
     println!("Camera: {:#?}", camera.projection_matrix);
     println!("Transform: {:#?}", transform);
     //*transform = transform.looking_at(Vec3::new(length as f32 / 2.0, 0., 0.), Vec3::new(0., 1., 0.));
     transform.translation = Vec3::new(length as f32 / 2.0, 0., 15.);
     println!("After Transform: {:#?}", transform);
-    let x = camera.projection_matrix.transform_point3(Vec3::new(length as f32 / 2., 0., 0.));
+    let x = camera
+        .projection_matrix
+        .transform_point3(Vec3::new(length as f32 / 2., 0., 0.));
     let scale = x.x / 15.;
     transform.scale.x = scale;
-    println!("{:#?}", camera.projection_matrix.transform_point3(Vec3::new(length as f32 / 2., 0., 0.)));
+    println!(
+        "{:#?}",
+        camera
+            .projection_matrix
+            .transform_point3(Vec3::new(length as f32 / 2., 0., 0.))
+    );
     // transform.translation.x -= length as f32 / 2.0;
 }
 
@@ -218,7 +299,161 @@ fn draw_feature(
             })
             .insert(SequenceViewItemDrawn)
             .insert_bundle(PickableBundle::default())
+            .insert(Collider {
+                size: Vec2::new(width, 0.2), //(feature.end - feature.start) as f32),
+            })
             .insert(BoundVol::default());
+    }
+}
+
+fn check_links(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut registry: ResMut<EntityRegistry>,
+    mut expansion_rounds: ResMut<ExpansionRounds>,
+    bstate: Res<BrowserState>,
+    query: Query<(Entity, &ID), With<CheckLinks>>,
+) {
+    if bstate.gfa.is_none() {
+        println!("No check_links: bstate gfa is none");
+        return;
+    }
+
+    if expansion_rounds.round == 10 {
+        return;
+    }
+
+    expansion_rounds.round += 1;
+
+    for (e, id) in query.iter() {
+        let mut entity = commands.entity(e);
+
+        // No more checking for this one...
+        entity.remove::<CheckLinks>();
+
+        let links = bstate.gfa.as_ref().unwrap().links_atlas.get(&id.id);
+
+        if links.is_none() {
+            return;
+        }
+
+        for link in links.unwrap() {
+            commands.spawn().insert(link.clone());
+
+            let from_entity = registry.registry.get(&link.from);
+
+            if from_entity.is_none() {
+                let segment = bstate
+                    .gfa
+                    .as_ref()
+                    .unwrap()
+                    .segments
+                    .get(&link.from)
+                    .unwrap();
+
+                println!("Spawning: {}", segment.id);
+
+                let length = segment.length.unwrap().get();
+
+                let id = commands
+                    .spawn_bundle(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Quad {
+                            size: Vec2::new(length as f32, 0.4),
+                            flip: false,
+                        })),
+                        material: materials.add(StandardMaterial {
+                            base_color: Color::BISQUE,
+                            // emissive: Color::WHITE * 10.0f32,
+                            ..Default::default()
+                        }),
+                        transform: Transform {
+                            rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                            translation: Vec3::new(length as f32 / 2.0, 0., 0.),
+                            scale: Vec3::new(1., 1., 1.),
+                        },
+
+                        //        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                        //        material: materials.add(StandardMaterial {
+                        //            base_color: Color::hex("ffd891").unwrap(),
+                        // vary key PBR parameters on a grid of spheres to show the effect
+                        //            ..Default::default()
+                        //        }),
+                        //        transform: Transform::from_xyz(-5.0, -2.5, 0.0),
+                        ..Default::default()
+                    })
+                    .insert_bundle(PickableBundle::default())
+                    .insert(BoundVol::default())
+                    .insert(LabelBase)
+                    .insert(SequenceViewItem)
+                    .insert(Name::from("Chromosome"))
+                    .insert(ID::from(segment.id.clone()))
+                    .insert(CheckLinks)
+                    .insert(Collider {
+                        size: Vec2::new(length as f32, 0.4),
+                    })
+                    .id();
+
+                registry.registry.insert(segment.id.clone(), id);
+            }
+
+            let to_entity = registry.registry.get(&link.to);
+
+            if to_entity.is_none() {
+                let segment = bstate.gfa.as_ref().unwrap().segments.get(&link.to);
+
+                if segment.is_none() {
+                    println!("Missing segment: {:#?}", link.to);
+                    continue;
+                }
+
+                let segment = segment.unwrap();
+
+                println!("Spawning: {}", segment.id);
+
+                let length = segment.length.unwrap().get();
+
+                let id = commands
+                    .spawn_bundle(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Quad {
+                            size: Vec2::new(length as f32, 0.4),
+                            flip: false,
+                        })),
+                        material: materials.add(StandardMaterial {
+                            base_color: Color::BISQUE,
+                            // emissive: Color::WHITE * 10.0f32,
+                            ..Default::default()
+                        }),
+                        transform: Transform {
+                            rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                            translation: Vec3::new(length as f32 / 2.0, 0., 0.),
+                            scale: Vec3::new(1., 1., 1.),
+                        },
+
+                        //        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                        //        material: materials.add(StandardMaterial {
+                        //            base_color: Color::hex("ffd891").unwrap(),
+                        // vary key PBR parameters on a grid of spheres to show the effect
+                        //            ..Default::default()
+                        //        }),
+                        //        transform: Transform::from_xyz(-5.0, -2.5, 0.0),
+                        ..Default::default()
+                    })
+                    .insert_bundle(PickableBundle::default())
+                    .insert(BoundVol::default())
+                    .insert(LabelBase)
+                    .insert(SequenceViewItem)
+                    .insert(Name::from("Chromosome"))
+                    .insert(ID::from(segment.id.clone()))
+                    .insert(CheckLinks)
+                    .insert(Collider {
+                        size: Vec2::new(length as f32, 0.4),
+                    })
+                    .id();
+
+                registry.registry.insert(segment.id.clone(), id);
+            }
+        }
     }
 }
 

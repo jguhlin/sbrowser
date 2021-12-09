@@ -1,7 +1,12 @@
 use crate::parsers::*;
 
-use std::str::FromStr;
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::str::FromStr;
+
+use bevy::prelude::*;
+use twox_hash::RandomXxHashBuilder64;
+use twox_hash::RandomXxh3HashBuilder64;
 
 pub struct CameraMoved;
 
@@ -9,16 +14,34 @@ pub struct LoadLandmark {
     pub id: String,
 }
 
+pub struct Collider {
+    pub size: Vec2,
+}
+
 pub struct DisplayDatabase {
     pub segments: Vec<Segment>,
     pub links: Vec<Link>,
 }
 
-pub struct CheckLink;
+pub struct CheckLinks;
+
+pub struct ID {
+    pub id: String,
+}
+
+pub struct ExpansionRounds {
+    pub round: usize,
+}
+
+impl ID {
+    pub fn from(id: String) -> Self {
+        Self { id }
+    }
+}
 
 #[derive(Clone, Debug, Copy)]
 pub enum Orientation {
-    Positive, 
+    Positive,
     Negative,
 }
 
@@ -40,6 +63,11 @@ impl FromStr for Orientation {
     }
 }
 
+#[derive(Default, Debug)]
+pub struct EntityRegistry {
+    pub registry: HashMap<String, Entity, RandomXxh3HashBuilder64>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Link {
     pub from: String,
@@ -47,6 +75,11 @@ pub struct Link {
     pub to: String,
     pub to_orient: Orientation,
     pub overlap: Option<String>,
+}
+
+pub struct LinkEntities {
+    pub from: Option<Entity>,
+    pub to: Option<Entity>,
 }
 
 // From: https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
@@ -57,10 +90,10 @@ pub struct Segment {
     pub read_count: Option<NonZeroUsize>,
     pub fragment_count: Option<NonZeroUsize>,
     pub kmer_count: Option<NonZeroUsize>,
-    pub checksum: u64, //SHA-256 checksum of the sequence
-    pub path: Option<String>, // URI or local file-system path of the sequence...
-    pub reference_name: Option<String>, // SN:Z: field
-    pub sequence_order: Option<usize>, // SO:i: field
+    pub checksum: u64,                    //SHA-256 checksum of the sequence
+    pub path: Option<String>,             // URI or local file-system path of the sequence...
+    pub reference_name: Option<String>,   // SN:Z: field
+    pub sequence_order: Option<usize>,    // SO:i: field
     pub orientation: Option<Orientation>, // For genes, CDS, etc... None when not applicable...
 }
 
@@ -115,5 +148,3 @@ impl ClickableLandmark {
         }
     }
 }
-
-

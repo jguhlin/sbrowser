@@ -30,7 +30,8 @@ fn main() {
     // let genome = genome::get_genome_from_gff3("converted.sorted.s.gff3");
 
     //let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
-    let genome = Gfa::parse("/mnt/data/kakapo-assemblies/RichardHenry/out.gfa").expect("Unable to parse GFA");
+    let genome = Gfa::parse("/mnt/data/kakapo-assemblies/RichardHenry/out.gfa")
+        .expect("Unable to parse GFA");
 
     let mut bstate = BrowserState::default();
     //bstate.gff3 = Some(genome.clone());
@@ -50,6 +51,8 @@ fn main() {
         .add_event::<CameraMoved>()
         .add_event::<LoadLandmark>()
         .add_plugins(DefaultPlugins)
+        .insert_resource(EntityRegistry::default())
+        .insert_resource(ExpansionRounds { round: 0 }) // DEBUG: Probably a temporary thing...
         .insert_resource(WorldInspectorParams {
             despawnable_entities: true,
             ..Default::default()

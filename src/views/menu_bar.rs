@@ -11,7 +11,7 @@ impl Plugin for MenuBarPlugin {
 }
 
 fn ui_example(egui_ctx: Res<EguiContext>) {
-    egui::TopPanel::top("top_panel").show(egui_ctx.ctx(), |ui| {
+    egui::TopBottomPanel::top("top_panel").show(egui_ctx.ctx(), |ui| {
         egui::menu::bar(ui, |ui| {
             egui::menu::menu(ui, "File", |ui| {
                 if ui.button("Quit").clicked() {

@@ -1,5 +1,6 @@
 [target.x86_64-unknown-linux-gnu]
-linker = "/usr/bin/clang"
+#linker = "/usr/bin/clang"
+#linker = "rust-lld.exe"
 rustflags = ["-Clink-arg=-fuse-ld=lld", "-Zshare-generics=y"]
 
 [target.x86_64-pc-windows-msvc]

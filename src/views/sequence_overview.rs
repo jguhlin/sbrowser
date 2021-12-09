@@ -86,7 +86,6 @@ fn setup(
     }
 
     if gff3.is_some() {
-
         let genome = gff3.unwrap();
 
         for (i, landmark) in genome.landmarks.iter().enumerate() {
@@ -155,9 +154,9 @@ fn setup(
         let genome = gfa.unwrap();
 
         for (i, landmark) in genome.segments.keys().enumerate() {
-
             let length = *genome.lengths.get(landmark).unwrap();
-            if length < 500 { // IMPORTANT: Filter out ones 500bp and below
+            if length < 500 {
+                // IMPORTANT: Filter out ones 500bp and below
                 continue;
             }
 
@@ -193,10 +192,10 @@ fn setup(
                 .insert(BoundVol::default())
                 .insert(LabelBase)
                 .insert(SequenceOverviewItem)
-                .insert(
-                    ClickableLandmark::from(
-                        &landmark, 
-                        *genome.lengths.get(landmark).unwrap()))
+                .insert(ClickableLandmark::from(
+                    &landmark,
+                    *genome.lengths.get(landmark).unwrap(),
+                ))
                 .id();
 
             commands
@@ -223,7 +222,6 @@ fn setup(
                 .insert(Label::belongs_to(id).with_offset(Vec3::new(0., 7.0, 0.)))
                 .insert(SequenceOverviewItem);
         }
-
     }
 }
 

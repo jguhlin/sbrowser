@@ -1,14 +1,14 @@
 use bytelines::*;
 use simdutf8::basic::from_utf8;
-use twox_hash::RandomXxh3HashBuilder64;
 use std::str::FromStr;
+use twox_hash::RandomXxh3HashBuilder64;
 
+use crate::structs::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::num::NonZeroUsize;
 use std::sync::Arc;
-use crate::structs::*;
 
 use super::feature::*;
 
@@ -36,7 +36,8 @@ impl Gfa {
         let mut segments: HashMap<String, Segment, RandomXxh3HashBuilder64> = Default::default();
         let mut lengths: HashMap<String, usize, RandomXxh3HashBuilder64> = Default::default();
         let mut links: Vec<Arc<Link>> = Vec::with_capacity(1 * 1024 * 1024);
-        let mut links_atlas: HashMap<String, Vec<Arc<Link>>, RandomXxh3HashBuilder64> = Default::default();
+        let mut links_atlas: HashMap<String, Vec<Arc<Link>>, RandomXxh3HashBuilder64> =
+            Default::default();
 
         let mut lines = file.byte_lines();
 
@@ -76,16 +77,22 @@ impl Gfa {
                 let link = Link {
                     from: from_utf8(split[1]).unwrap().to_string(),
                     from_orient: from_utf8(split[2]).unwrap().parse::<Orientation>().unwrap(),
-                    to: from_utf8(split[2]).unwrap().to_string(),
-                    to_orient: from_utf8(split[2]).unwrap().parse::<Orientation>().unwrap(),
+                    to: from_utf8(split[3]).unwrap().to_string(),
+                    to_orient: from_utf8(split[4]).unwrap().parse::<Orientation>().unwrap(),
                     overlap: None,
                 };
 
                 let link = Arc::new(link);
 
                 links.push(Arc::clone(&link));
-                links_atlas.entry(link.from.clone()).or_default().push(Arc::clone(&link));
-                links_atlas.entry(link.to.clone()).or_default().push(Arc::clone(&link));
+                links_atlas
+                    .entry(link.from.clone())
+                    .or_default()
+                    .push(Arc::clone(&link));
+                links_atlas
+                    .entry(link.to.clone())
+                    .or_default()
+                    .push(Arc::clone(&link));
             }
         }
 
