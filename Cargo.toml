@@ -21,3 +21,6 @@ rayon = "1.5.1"
 # bevy_rapier3d = { version = "*", features = [ "wasm-bindgen", "render" ] }
 rand = "0.8.0"
 rand_xoshiro = "0.6.0"
+mimalloc = { version = "*", default-features = false }
+jetscii = { version = "0.5.1", features = [ "pattern" ] }
+memchr = "2.4.1"

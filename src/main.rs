@@ -1,3 +1,11 @@
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+#[macro_use]
+extern crate jetscii;
+
 use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::Light, prelude::*};
 
 use structs::*;

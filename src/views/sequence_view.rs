@@ -115,11 +115,6 @@ fn setup(
 
     println!("Chr Length: {}", length);
 
-    /*    commands.spawn().insert(bevy::pbr::AmbientLight {
-       color: Color::WHITE,
-       brightness: 1000.0,
-    }).insert(Name::from("AmbientLight")); */
-
     let id = commands
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Quad {
@@ -313,7 +308,7 @@ fn check_links(
     mut registry: ResMut<EntityRegistry>,
     mut expansion_rounds: ResMut<ExpansionRounds>,
     bstate: Res<BrowserState>,
-    query: Query<(Entity, &ID), With<CheckLinks>>,
+    query: Query<(Entity, &ID, &Transform, &Collider), With<CheckLinks>>,
 ) {
     if bstate.gfa.is_none() {
         println!("No check_links: bstate gfa is none");
@@ -326,7 +321,7 @@ fn check_links(
 
     expansion_rounds.round += 1;
 
-    for (e, id) in query.iter() {
+    for (e, id, transform, collider) in query.iter() {
         let mut entity = commands.entity(e);
 
         // No more checking for this one...
@@ -363,13 +358,13 @@ fn check_links(
                             flip: false,
                         })),
                         material: materials.add(StandardMaterial {
-                            base_color: Color::BISQUE,
+                            base_color: Color::YELLOW,
                             // emissive: Color::WHITE * 10.0f32,
                             ..Default::default()
                         }),
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
-                            translation: Vec3::new(length as f32 / 2.0, 0., 0.),
+                            translation: Vec3::new(transform.translation.x - collider.size.x / 2.0 - length as f32 / 2.0 + 100., 0., 0.),
                             scale: Vec3::new(1., 1., 1.),
                         },
 
@@ -420,7 +415,7 @@ fn check_links(
                             flip: false,
                         })),
                         material: materials.add(StandardMaterial {
-                            base_color: Color::BISQUE,
+                            base_color: Color::YELLOW,
                             // emissive: Color::WHITE * 10.0f32,
                             ..Default::default()
                         }),
