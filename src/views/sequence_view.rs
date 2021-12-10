@@ -327,14 +327,12 @@ fn draw_lines(
                 continue;
             }
 
-            let (te, tt, tc, tid) = query.get(*linkto.unwrap()).unwrap();
+            if let Ok((te, tt, tc, tid)) = query.get(*linkto.unwrap()) {
+                let mut target_position = tt.translation;   
+                target_position.x -= tc.size.x / 2.0; // Left align
 
-            let mut target_position = tt.translation;
-            target_position.x -= tc.size.x / 2.0; // Left align
-
-            lines.line(position, target_position, 1.0);
-
-
+                lines.line(position, target_position, 0.);
+            }
         }
     }
 }
@@ -353,9 +351,9 @@ fn check_links(
         return;
     }
 
-    if expansion_rounds.round == 10 {
+    /*if expansion_rounds.round == 10 {
         return;
-    }
+    }*/
 
     expansion_rounds.round += 1;
 
@@ -404,7 +402,7 @@ fn check_links(
                         }),
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
-                            translation: Vec3::new(transform.translation.x - collider.size.x / 2.0 - length as f32 / 2.0 + 100., 0., 0.),
+                            translation: Vec3::new(transform.translation.x - collider.size.x / 2.0 - length as f32 / 2.0 - 1000., 0., 0.),
                             scale: Vec3::new(1., 1., 1.),
                         },
 
@@ -464,7 +462,7 @@ fn check_links(
                         }),
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
-                            translation: Vec3::new(length as f32 / 2.0, 0., 0.),
+                            translation: Vec3::new(transform.translation.x + collider.size.x / 2.0 + length as f32 / 2.0 + 1000., 0., 0.),
                             scale: Vec3::new(1., 1., 1.),
                         },
 
