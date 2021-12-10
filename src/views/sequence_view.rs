@@ -419,7 +419,7 @@ fn check_links(
                     .insert(BoundVol::default())
                     .insert(LabelBase)
                     .insert(SequenceViewItem)
-                    .insert(Name::from("Chromosome"))
+                    .insert(Name::from(segment.id.as_str()))
                     .insert(ID::from(segment.id.clone()))
                     .insert(CheckLinks)
                     .insert(Collider {
@@ -479,7 +479,7 @@ fn check_links(
                     .insert(BoundVol::default())
                     .insert(LabelBase)
                     .insert(SequenceViewItem)
-                    .insert(Name::from("Chromosome"))
+                    .insert(Name::from(segment.id.as_str()))
                     .insert(ID::from(segment.id.clone()))
                     .insert(CheckLinks)
                     .insert(Collider {
