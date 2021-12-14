@@ -3,10 +3,10 @@ use bevy::prelude::*;
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
+use bevy_prototype_debug_lines::*;
 use rand::prelude::*;
 use rand_xoshiro::SplitMix64;
 use rayon::prelude::*;
-use bevy_prototype_debug_lines::*;
 
 use crate::core::states::*;
 use crate::structs::*;
@@ -310,12 +310,17 @@ fn draw_lines(
     bstate: Res<BrowserState>,
 ) {
     for (e, t, c, id) in query.iter() {
-        let links = bstate.gfa.as_ref().unwrap().links_atlas.get(&id.id).unwrap();
+        let links = bstate
+            .gfa
+            .as_ref()
+            .unwrap()
+            .links_atlas
+            .get(&id.id)
+            .unwrap();
         for link in links {
-
             // Only operate on the from's...
             if link.to == id.id {
-                continue
+                continue;
             }
 
             let mut position = t.translation;
@@ -328,7 +333,7 @@ fn draw_lines(
             }
 
             if let Ok((te, tt, tc, tid)) = query.get(*linkto.unwrap()) {
-                let mut target_position = tt.translation;   
+                let mut target_position = tt.translation;
                 target_position.x -= tc.size.x / 2.0; // Left align
 
                 lines.line(position, target_position, 0.);
@@ -385,7 +390,7 @@ fn check_links(
                     .get(&link.from)
                     .unwrap();
 
-                println!("Spawning: {}", segment.id);
+                println!("Spawning: {}\nLength: {}", segment.id, segment.length.unwrap().get());
 
                 let length = segment.length.unwrap().get();
 
@@ -397,12 +402,18 @@ fn check_links(
                         })),
                         material: materials.add(StandardMaterial {
                             base_color: Color::YELLOW,
-                            // emissive: Color::WHITE * 10.0f32,
+                            // emissive: Color::WHITE * 10.0f32
                             ..Default::default()
                         }),
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
-                            translation: Vec3::new(transform.translation.x - collider.size.x / 2.0 - length as f32 / 2.0 - 1000., 0., 0.),
+                            translation: Vec3::new(
+                                transform.translation.x
+                                    - collider.size.x // / 2.0
+                                    - length as f32, // / 2.0
+                                0.,
+                                0.,
+                            ),
                             scale: Vec3::new(1., 1., 1.),
                         },
 
@@ -429,8 +440,6 @@ fn check_links(
                     .id();
 
                 registry.registry.insert(segment.id.clone(), id);
-                
-                
             }
 
             let to_entity = registry.registry.get(&link.to);
@@ -462,7 +471,13 @@ fn check_links(
                         }),
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
-                            translation: Vec3::new(transform.translation.x + collider.size.x / 2.0 + length as f32 / 2.0 + 1000., 0., 0.),
+                            translation: Vec3::new(
+                                transform.translation.x
+                                    + collider.size.x
+                                    + length as f32,
+                                0.,
+                                0.,
+                            ),
                             scale: Vec3::new(1., 1., 1.),
                         },
 

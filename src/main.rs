@@ -219,7 +219,7 @@ fn mouse_scroll(
 }
 
 pub struct Highlight;
-/* 
+/*
 fn hover_highlight(
     mut commands: Commands,
     mut q: Query<(Entity, &mut Hoverable, &mut ShapeColors, &Transform), (Changed<Hoverable>)>,
