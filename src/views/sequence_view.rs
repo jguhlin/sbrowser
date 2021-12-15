@@ -390,7 +390,11 @@ fn check_links(
                     .get(&link.from)
                     .unwrap();
 
-                println!("Spawning: {}\nLength: {}", segment.id, segment.length.unwrap().get());
+                println!(
+                    "Spawning: {}\nLength: {}",
+                    segment.id,
+                    segment.length.unwrap().get()
+                );
 
                 let length = segment.length.unwrap().get();
 
@@ -472,9 +476,7 @@ fn check_links(
                         transform: Transform {
                             rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
                             translation: Vec3::new(
-                                transform.translation.x
-                                    + collider.size.x
-                                    + length as f32,
+                                transform.translation.x + collider.size.x + length as f32,
                                 0.,
                                 0.,
                             ),
