@@ -109,7 +109,7 @@ fn setup(
     mut registry: ResMut<EntityRegistry>,
     asset_server: Res<AssetServer>,
     mut camera_query: Query<(&Camera, &mut Transform), With<MainCamera>>,
-    ui_setting: Res<UISetting>,
+    mut ui_setting: ResMut<UISetting>,
 ) {
     // Draw 3d chromosome on the main camera (could be another, for example if only looking at a gene, or something)
 
@@ -203,12 +203,7 @@ fn setup(
         .transform_point3(Vec3::new(length as f32 / 2., 0., 0.));
     let scale = x.x / 15.;
     transform.scale.x = scale;
-    println!(
-        "{:#?}",
-        camera
-            .projection_matrix
-            .transform_point3(Vec3::new(length as f32 / 2., 0., 0.))
-    );
+    ui_setting.zoom_factor += scale;
     // transform.translation.x -= length as f32 / 2.0;
 }
 
