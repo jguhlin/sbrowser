@@ -10,7 +10,7 @@ impl Plugin for MenuBarPlugin {
     }
 }
 
-fn ui_example(egui_ctx: Res<EguiContext>) {
+fn ui_example(mut egui_ctx: ResMut<EguiContext>) {
     egui::TopBottomPanel::top("top_panel").show(egui_ctx.ctx_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {

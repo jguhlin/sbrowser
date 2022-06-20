@@ -31,5 +31,5 @@ mimalloc = { version = "*", default-features = false }
 jetscii = { version = "0.5.1", features = [ "pattern" ] }
 memchr = "2.4.1"
 # bevy_polyline = { git = "https://github.com/elfein727/bevy_polyline" }
-bevy_prototype_debug_lines = "0.7.1"
+bevy_prototype_debug_lines = { version = "0.7.1", features=["3d"] }
 bevy_text_mesh = "0.2.0"

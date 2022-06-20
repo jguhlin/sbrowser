@@ -47,7 +47,8 @@ fn main() {
 
     let mut app = App::new();
 
-    app.insert_resource(Msaa { samples: 8 })
+    app
+    // .insert_resource(Msaa { samples: 8 })
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 0.5f32,
@@ -69,12 +70,11 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_plugin(PickingPlugin)
         .add_plugin(InteractablePickingPlugin)
-        .add_plugin(HighlightablePickingPlugin)
+        // .add_plugin(HighlightablePickingPlugin)
         .add_plugin(DebugCursorPickingPlugin)
         .add_plugin(DebugEventsPickingPlugin)
         .add_plugin(LabelPlacerPlugin)
-        .add_plugin(DebugLinesPlugin)
-        // .insert_resource(DebugLines { depth_test: true, ..Default::default() })
+        .add_plugin(DebugLinesPlugin::default())
         //.add_plugin(HoverPlugin)
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
@@ -91,14 +91,9 @@ fn main() {
         .add_state(AppState::SequenceOverview);
     // .add_system(zoom_chromosome.system())
 
-    // getting registry from world
-    let mut registry = app
-        .world_mut()
-        .get_resource_or_insert_with(InspectableRegistry::default);
-
     // registering custom component to be able to edit it in inspector
-    registry.register::<Label>();
-    registry.register::<Feature>();
+    // registry.register::<Label>();
+    // registry.register::<Feature>();
 
     app.run();
 }
@@ -187,7 +182,7 @@ fn camera_move(
 
         // velocity = velocity.normalize();
 
-        if !velocity.is_nan() && velocity.abs() > Vec3::ZERO {
+        if !velocity.is_nan() && velocity != Vec3::ZERO {
             transform.translation += velocity * time.delta_seconds();
             ev_cameramoved.send(CameraMoved);
         }

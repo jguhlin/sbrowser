@@ -49,56 +49,39 @@ enum MoveDirection {
 }
 
 fn collision_check(
-    mut q: ParamSet<(
-        Query<(&Transform, &Collider, Entity)>,
-        Query<(&Transform, &Collider, Entity)>,
-        Query<&mut Transform>,
-    )>,
+    mut q0: Query<(&mut Transform, &Collider, Entity)>,
 ) {
     let mut rng = SplitMix64::from_rng(thread_rng()).unwrap();
 
-    let mut to_move = Vec::new();
+    let mut iter = q0.iter_combinations_mut();
 
-    for (transform_a, collider_a, entity_a) in q.p0().iter() {
+    while let Some([(transform_a, collider_a, entity_a), (mut transform_b, collider_b, entity_b)]) = iter.fetch_next() {
+
         // https://github.com/bevyengine/bevy/blob/c5717b5a9124c7c2f7431c4be07f15243ebd60b5/crates/bevy_sprite/src/collide_aabb.rs
         let a_min = transform_a.translation.truncate() - collider_a.size / 2.0;
         let a_max = transform_a.translation.truncate() + collider_a.size / 2.0;
 
-        for (transform_b, collider_b, entity_b) in q.p1().iter() {
-            if entity_a == entity_b {
-                continue;
+        let b_min = transform_b.translation.truncate() - collider_b.size / 2.0;
+        let b_max = transform_b.translation.truncate() + collider_b.size / 2.0;
+
+        if a_min.x < b_max.x && a_max.x > b_min.x && a_min.y < b_max.y && a_max.y > b_min.y {
+            // println!("Collision detected between {:#?} and {:#?}\n{:#?}\n{:#?}\n{:#?}\n{:#?}", entity_a, entity_b, a_min, a_max, b_min, b_max);
+
+            // Top left corner is min.x and max.y
+            // Bottom left corner is min.x and min.y
+            // Top right corner is max.x and max.y
+            // Bottom right corner is max.x and min.y
+
+            let amt_y = rng.gen_range(-0.1..0.1);
+            let amt_x = rng.gen_range(-10000.0..10000.0);
+   
+            if rng.gen::<bool>() {
+                transform_b.translation.x -= amt_x;
             }
-
-            let b_min = transform_b.translation.truncate() - collider_b.size / 2.0;
-            let b_max = transform_b.translation.truncate() + collider_b.size / 2.0;
-
-            if a_min.x < b_max.x && a_max.x > b_min.x && a_min.y < b_max.y && a_max.y > b_min.y {
-                // println!("Collision detected between {:#?} and {:#?}\n{:#?}\n{:#?}\n{:#?}\n{:#?}", entity_a, entity_b, a_min, a_max, b_min, b_max);
-
-                // Top left corner is min.x and max.y
-                // Bottom left corner is min.x and min.y
-                // Top right corner is max.x and max.y
-                // Bottom right corner is max.x and min.y
-
-                to_move.push(entity_b);
+            if rng.gen::<bool>() {
+                transform_b.translation.y -= amt_y;
             }
         }
-    }
-
-    for entity in to_move.into_iter() {
-        let amt_y = rng.gen_range(-0.1..0.1);
-        let amt_x = rng.gen_range(-10000.0..10000.0);
-        let mut transform = q.p2().get_mut(entity).unwrap();
-
-        if rng.gen::<bool>() {
-            transform.translation.x -= amt_x;
-        }
-        if rng.gen::<bool>() {
-            transform.translation.y -= amt_y;
-        }
-        // let mut transform = q.q2_mut().get_mut(*entity).unwrap();
-        // transform.translation.y += rng.gen_range(-0.25..0.25);
-        // transform.translation.x += rng.gen_range(-0.25..0.25);
     }
 }
 
@@ -374,7 +357,7 @@ fn check_links(
         entity.insert(HasLinks);
 
         for link in links.unwrap() {
-            commands.spawn().insert(link.clone());
+            commands.spawn().insert(link.as_ref().clone());
 
             let from_entity = registry.registry.get(&link.from);
 
@@ -407,7 +390,7 @@ fn check_links(
                             ..Default::default()
                         }),
                         transform: Transform {
-                            rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                            rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
                             translation: Vec3::new(
                                 transform.translation.x
                                     - collider.size.x // / 2.0
