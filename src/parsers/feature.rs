@@ -1,7 +1,8 @@
+use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use std::str::FromStr;
 
-#[derive(PartialEq, Clone, Debug, Inspectable, Default)]
+#[derive(PartialEq, Clone, Debug, Inspectable, Default, Component)]
 pub struct Feature {
     pub name: String,
     pub landmark: String,

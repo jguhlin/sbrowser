@@ -6,7 +6,7 @@ use crate::core::states::*;
 
 pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_update(AppState::MainMenu)
                 .with_system(ui_example.system())

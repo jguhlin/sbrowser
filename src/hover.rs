@@ -7,7 +7,7 @@ use bevy_inspector_egui::Inspectable;
 
 pub struct HoverPlugin;
 impl Plugin for HoverPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system(cursor_moved.system())
             .add_system(hoverable.system())
             .init_resource::<CursorState>();
@@ -26,7 +26,7 @@ pub struct CursorState {
 
 pub struct Cursor;
 
-#[derive(Inspectable)]
+#[derive(Inspectable, Component)]
 pub struct Hoverable {
     pub is: bool,
     pub height: f32,

@@ -6,7 +6,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[macro_use]
 extern crate jetscii;
 
-use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::Light, prelude::*};
+use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::PointLightBundle, prelude::*};
 use bevy_prototype_debug_lines::*;
 
 use bevy::render::camera::*;
@@ -45,7 +45,7 @@ fn main() {
     //bstate.gff3 = Some(genome.clone());
     bstate.gfa = Some(genome.clone());
 
-    let mut app = App::build();
+    let mut app = App::new();
 
     app.insert_resource(Msaa { samples: 8 })
         .insert_resource(AmbientLight {
@@ -103,11 +103,11 @@ fn main() {
     app.run();
 }
 
-#[derive(Default)]
+#[derive(Default, Component)]
 pub struct MainCamera;
 
 fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
-    commands.spawn_bundle(LightBundle {
+    commands.spawn_bundle(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(0., 5., 5.)),
         ..Default::default()
     });
@@ -202,9 +202,9 @@ fn mouse_scroll(
     mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
 ) {
-    let window = windows.get_primary().unwrap();
+    let window = windows.get_primary();
 
-    let (_camera, mut transform) = query.single_mut().unwrap();
+    let (_camera, mut transform) = query.single_mut();
 
     for event in mouse_wheel_events.iter() {
         ui_setting.zoom_factor += -event.y;

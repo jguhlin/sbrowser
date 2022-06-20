@@ -5,15 +5,15 @@ use crate::core::states::*;
 
 pub struct MenuBarPlugin;
 impl Plugin for MenuBarPlugin {
-    fn build(&self, app: &mut AppBuilder) {
-        app.add_system(ui_example.system());
+    fn build(&self, app: &mut App) {
+        app.add_system(ui_example);
     }
 }
 
 fn ui_example(egui_ctx: Res<EguiContext>) {
-    egui::TopBottomPanel::top("top_panel").show(egui_ctx.ctx(), |ui| {
+    egui::TopBottomPanel::top("top_panel").show(egui_ctx.ctx_mut(), |ui| {
         egui::menu::bar(ui, |ui| {
-            egui::menu::menu(ui, "File", |ui| {
+            ui.menu_button("File", |ui| {
                 if ui.button("Quit").clicked() {
                     std::process::exit(0);
                 }

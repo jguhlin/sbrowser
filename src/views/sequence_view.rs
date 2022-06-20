@@ -13,11 +13,12 @@ use crate::structs::*;
 use crate::utils::label_placer::*;
 use crate::*;
 
+#[derive(Component)]
 pub struct SequenceViewItem;
 
 pub struct SequenceViewPlugin;
 impl Plugin for SequenceViewPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         //        app.add_system_set(
         //            SystemSet::on_update(AppState::SequenceView)
         //                .with_system(draw_primary.system()),
@@ -25,17 +26,17 @@ impl Plugin for SequenceViewPlugin {
 
         app.add_system_set(
             SystemSet::on_enter(AppState::SequenceView)
-                .with_system(setup.system())
-                .with_system(draw_primary.system())
-                .with_system(create_gff3_entities.system()),
+                .with_system(setup)
+                .with_system(draw_primary)
+                .with_system(create_gff3_entities),
         )
-        .add_system_set(SystemSet::on_exit(AppState::SequenceView).with_system(cleanup.system()))
+        .add_system_set(SystemSet::on_exit(AppState::SequenceView).with_system(cleanup))
         .add_system_set(
             SystemSet::on_update(AppState::SequenceView)
-                .with_system(check_links.system())
-                .with_system(draw_feature.system())
-                .with_system(draw_lines.system())
-                .with_system(collision_check.system()),
+                .with_system(check_links)
+                .with_system(draw_feature)
+                .with_system(draw_lines)
+                .with_system(collision_check),
         );
     }
 }
@@ -48,7 +49,7 @@ enum MoveDirection {
 }
 
 fn collision_check(
-    mut q: QuerySet<(
+    mut q: ParamSet<(
         Query<(&Transform, &Collider, Entity)>,
         Query<(&Transform, &Collider, Entity)>,
         Query<&mut Transform>,
@@ -58,12 +59,12 @@ fn collision_check(
 
     let mut to_move = Vec::new();
 
-    for (transform_a, collider_a, entity_a) in q.q0().iter() {
+    for (transform_a, collider_a, entity_a) in q.p0().iter() {
         // https://github.com/bevyengine/bevy/blob/c5717b5a9124c7c2f7431c4be07f15243ebd60b5/crates/bevy_sprite/src/collide_aabb.rs
         let a_min = transform_a.translation.truncate() - collider_a.size / 2.0;
         let a_max = transform_a.translation.truncate() + collider_a.size / 2.0;
 
-        for (transform_b, collider_b, entity_b) in q.q1().iter() {
+        for (transform_b, collider_b, entity_b) in q.p1().iter() {
             if entity_a == entity_b {
                 continue;
             }
@@ -87,7 +88,7 @@ fn collision_check(
     for entity in to_move.into_iter() {
         let amt_y = rng.gen_range(-0.1..0.1);
         let amt_x = rng.gen_range(-10000.0..10000.0);
-        let mut transform = q.q2_mut().get_mut(entity).unwrap();
+        let mut transform = q.p2().get_mut(entity).unwrap();
 
         if rng.gen::<bool>() {
             transform.translation.x -= amt_x;
@@ -129,7 +130,7 @@ fn setup(
                 ..Default::default()
             }),
             transform: Transform {
-                rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
                 translation: Vec3::new(length as f32 / 2.0, 0., 0.),
                 scale: Vec3::new(1., 1., 1.),
             },
@@ -144,7 +145,6 @@ fn setup(
             ..Default::default()
         })
         .insert_bundle(PickableBundle::default())
-        .insert(BoundVol::default())
         .insert(LabelBase)
         .insert(SequenceViewItem)
         .insert(Name::from("Chromosome"))
@@ -173,7 +173,7 @@ fn setup(
                     ..Default::default()
                 }),
                 transform: Transform {
-                    rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                    rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
                     translation: Vec3::new(x, 0., 0.),
                     scale: Vec3::new(1., 1., 1.),
                 },
@@ -191,7 +191,7 @@ fn setup(
             .id();
     }
 
-    let (camera, mut transform) = camera_query.single_mut().unwrap();
+    let (camera, mut transform) = camera_query.single_mut();
 
     println!("Camera: {:#?}", camera.projection_matrix);
     println!("Transform: {:#?}", transform);
@@ -212,8 +212,10 @@ fn draw_ticks(
     windows: Res<Windows>,
     mut camera_query: Query<(&Camera, &mut Transform), With<MainCamera>>,
 ) {
-    let (camera, mut transform) = camera_query.single_mut().unwrap();
-    let window = windows.get(camera.window).unwrap();
+    let (camera, mut transform) = camera_query.single_mut();
+    if let RenderTarget::Window(window_id) = camera.target {
+        let window = windows.get(window_id).unwrap();
+    }
 
     // Have to calculate viewable space
     // Update at the start, then update when zoom in/out
@@ -251,6 +253,7 @@ fn entity_bundle_from_gff3_feature(feature: Feature) -> (SequenceViewItem, Name,
     (SequenceViewItem, Name::from("Gene"), feature)
 }
 
+#[derive(Component)]
 pub struct SequenceViewItemDrawn;
 
 fn draw_feature(
@@ -283,7 +286,7 @@ fn draw_feature(
                     ..Default::default()
                 }),
                 transform: Transform {
-                    rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
+                    rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., std::f32::consts::FRAC_PI_2), // 1.5708),
                     translation: coords,
                     scale: Vec3::new(1., 1., 1.),
                 },
@@ -293,8 +296,7 @@ fn draw_feature(
             .insert_bundle(PickableBundle::default())
             .insert(Collider {
                 size: Vec2::new(width, 0.2), //(feature.end - feature.start) as f32),
-            })
-            .insert(BoundVol::default());
+            });
     }
 }
 
@@ -426,7 +428,6 @@ fn check_links(
                         ..Default::default()
                     })
                     .insert_bundle(PickableBundle::default())
-                    .insert(BoundVol::default())
                     .insert(LabelBase)
                     .insert(SequenceViewItem)
                     .insert(Name::from(segment.id.as_str()))
@@ -469,7 +470,7 @@ fn check_links(
                             ..Default::default()
                         }),
                         transform: Transform {
-                            rotation: Quat::from_rotation_ypr(0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                            rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
                             translation: Vec3::new(
                                 transform.translation.x + collider.size.x + length as f32,
                                 0.,
@@ -488,7 +489,6 @@ fn check_links(
                         ..Default::default()
                     })
                     .insert_bundle(PickableBundle::default())
-                    .insert(BoundVol::default())
                     .insert(LabelBase)
                     .insert(SequenceViewItem)
                     .insert(Name::from(segment.id.as_str()))

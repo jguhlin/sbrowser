@@ -21,11 +21,12 @@ pub struct Sequence {
     // file_path: String,
 }
 
+#[derive(Component)]
 struct SequenceOverviewItem;
 
 pub struct SequenceOverviewPlugin;
 impl Plugin for SequenceOverviewPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_update(AppState::SequenceOverview)
                 .with_system(ui_example.system())
@@ -111,14 +112,13 @@ fn setup(
                         ..Default::default()
                     }),
                     transform: Transform {
-                        rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
+                        rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., std::f32::consts::FRAC_PI_2),
                         translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
                         scale: Vec3::new(1., 1., 1.),
                     },
                     ..Default::default()
                 })
                 .insert_bundle(PickableBundle::default())
-                .insert(BoundVol::default())
                 .insert(LabelBase)
                 .insert(SequenceOverviewItem)
                 .insert(ClickableLandmark::from(&landmark.0, landmark.3))
@@ -182,14 +182,13 @@ fn setup(
                         ..Default::default()
                     }),
                     transform: Transform {
-                        rotation: Quat::from_rotation_ypr(0., 0., std::f32::consts::FRAC_PI_2),
+                        rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., std::f32::consts::FRAC_PI_2),
                         translation: Vec3::new(-8. + col as f32 * 4., row as f32 * -1., 0.),
                         scale: Vec3::new(1., 1., 1.),
                     },
                     ..Default::default()
                 })
                 .insert_bundle(PickableBundle::default())
-                .insert(BoundVol::default())
                 .insert(LabelBase)
                 .insert(SequenceOverviewItem)
                 .insert(ClickableLandmark::from(

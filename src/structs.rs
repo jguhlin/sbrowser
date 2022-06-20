@@ -14,6 +14,7 @@ pub struct LoadLandmark {
     pub id: String,
 }
 
+#[derive(Component)]
 pub struct Collider {
     pub size: Vec2,
 }
@@ -23,9 +24,13 @@ pub struct DisplayDatabase {
     pub links: Vec<Link>,
 }
 
+#[derive(Component)]
 pub struct HasLinks;
+
+#[derive(Component)]
 pub struct CheckLinks;
 
+#[derive(Component)]
 pub struct ID {
     pub id: String,
 }
@@ -69,7 +74,7 @@ pub struct EntityRegistry {
     pub registry: HashMap<String, Entity, RandomXxh3HashBuilder64>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct Link {
     pub from: String,
     pub from_orient: Orientation,
@@ -135,7 +140,7 @@ impl Default for UISetting {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Component)]
 pub struct ClickableLandmark {
     pub id: String,
     pub length: usize,
