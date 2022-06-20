@@ -82,11 +82,11 @@ fn main() {
         .add_plugin(SequenceViewPlugin)
         .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
-        .add_startup_system(setup.system())
+        .add_startup_system(setup)
         // .add_startup_system(draw_chromosome.system())
         // .add_plugin(NoCameraPlayerPlugin)
-        .add_system(camera_move.system())
-        .add_system(mouse_scroll.system())
+        .add_system(camera_move)
+        .add_system(mouse_scroll)
         //.add_system(hover_highlight.system())
         .add_state(AppState::SequenceOverview);
     // .add_system(zoom_chromosome.system())
@@ -107,7 +107,7 @@ fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
         ..Default::default()
     });
 
-    let mut camera_bundle = PerspectiveCameraBundle::default();
+     let mut camera_bundle = PerspectiveCameraBundle::default();
     camera_bundle.transform = Transform::from_xyz(0., 0., 15.)
         .looking_at(Vec3::splat(0.0), camera_bundle.transform.local_y());
 
@@ -153,11 +153,8 @@ fn camera_move(
     mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
     ui_setting: Res<UISetting>,
+    btn: Res<Input<MouseButton>>,
 ) {
-    if keys.get_pressed().len() == 0 {
-        return;
-    }
-
     let window = windows.get_primary().unwrap();
 
     for (_camera, mut transform) in query.iter_mut() {
@@ -178,9 +175,9 @@ fn camera_move(
             }
         }
 
-        // println!("ZF: {}", ui_setting.zoom_factor);
-
-        // velocity = velocity.normalize();
+        if btn.just_pressed(MouseButton::Left) {
+            println!("Mouse click!");
+        }
 
         if !velocity.is_nan() && velocity != Vec3::ZERO {
             transform.translation += velocity * time.delta_seconds();
