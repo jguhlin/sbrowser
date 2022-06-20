@@ -129,13 +129,15 @@ pub enum View {
 pub struct UISetting {
     pub zoom_factor: f32,
     pub view: View,
+    pub dragging: Option<i32>,
 }
 
 impl Default for UISetting {
     fn default() -> UISetting {
         UISetting {
-            zoom_factor: 1024.0,
+            zoom_factor: 1.0,
             view: View::SequenceOverview,
+            dragging: None,
         }
     }
 }

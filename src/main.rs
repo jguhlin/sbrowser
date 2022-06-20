@@ -11,7 +11,6 @@ use bevy_prototype_debug_lines::*;
 
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-// use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use bevy_mod_picking::*;
 
@@ -34,11 +33,13 @@ use crate::structs::*;
 use crate::utils::label_placer::*;
 use crate::views::*;
 
+const DRAG_SPEED_COFACTOR: f32 = 0.5;
+
 fn main() {
     // let genome = genome::get_genome_from_gff3("converted.sorted.s.gff3");
 
     //let genome = Gff3::parse("converted.sorted.s.gff3").expect("Unable to parse GFF3");
-    let genome = Gfa::parse("/mnt/data/kakapo-assemblies/RichardHenry/out.gfa")
+    let genome = Gfa::parse("out.gfa")
         .expect("Unable to parse GFA");
 
     let mut bstate = BrowserState::default();
@@ -51,7 +52,7 @@ fn main() {
     // .insert_resource(Msaa { samples: 8 })
         .insert_resource(AmbientLight {
             color: Color::WHITE,
-            brightness: 0.5f32,
+            brightness: 0.5,
         })
         .insert_resource(genome)
         .insert_resource(ClearColor(Color::BLACK))
@@ -116,7 +117,6 @@ fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
     commands
         .spawn_bundle(camera_bundle)
         .insert(MainCamera)
-        // .insert(FlyCam)
         .insert_bundle(PickingCameraBundle::default());
 
     // Trigger label placements
@@ -125,24 +125,16 @@ fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
 
 pub fn calc_coords(chr: &Chromosome, zf: f32, gene: &Gene) -> Vec3 {
     let width = chr.length as f32;
-
     let zero = -width / 2.0;
-
     let start_loc = zero + (gene.start as f32);
-
     let center = start_loc + ((gene.end - gene.start) as f32 / 2.0);
-
     Vec3::new(center / zf, -50.0, 1.0)
 }
 
 pub fn calc_coords_primitive(chr_length: f32, gene_start: f32, gene_end: f32) -> Vec3 {
     let zero = -chr_length as f32 / 2.0;
-
     let start_loc = zero + (gene_start as f32);
-
     let center = start_loc + ((gene_end - gene_start) as f32 / 2.0);
-
-    //Vec3::new(center / zf, 2.0, 1.0)
     Vec3::new(center, 2.0, 0.0)
 }
 
@@ -152,54 +144,59 @@ fn camera_move(
     windows: Res<Windows>,
     mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
-    ui_setting: Res<UISetting>,
+    mut ui_setting: ResMut<UISetting>,
     btn: Res<Input<MouseButton>>,
 ) {
     let window = windows.get_primary().unwrap();
 
-    for (_camera, mut transform) in query.iter_mut() {
-        let mut velocity = Vec3::ZERO;
-        let vert = Vec3::new(0.0, 0.8, 0.0);
-        let horiz = Vec3::new(1.05, 0.0, 0.0);
-        let zoom = Vec3::new(0.0, 0.0, 0.05);
+    let (_camera, mut transform) = query.single_mut();
+    let mut velocity = Vec3::ZERO;
+    let vert = Vec3::new(0.0, 0.8, 0.0);
+    let horiz = Vec3::new(1.05, 0.0, 0.0);
+    let zoom = Vec3::new(0.0, 0.0, 0.05);
 
-        for key in keys.get_pressed() {
-            match key {
-                KeyCode::W => velocity += vert,
-                KeyCode::S => velocity -= vert,
-                KeyCode::A => velocity -= horiz * ui_setting.zoom_factor,
-                KeyCode::D => velocity += horiz * ui_setting.zoom_factor,
-                KeyCode::Z => velocity += zoom * ui_setting.zoom_factor,
-                KeyCode::X => velocity -= zoom * ui_setting.zoom_factor,
-                _ => (),
-            }
+    for key in keys.get_pressed() {
+        match key {
+            KeyCode::W => velocity += vert,
+            KeyCode::S => velocity -= vert,
+            KeyCode::A => velocity -= horiz * ui_setting.zoom_factor,
+            KeyCode::D => velocity += horiz * ui_setting.zoom_factor,
+            KeyCode::Z => velocity += zoom * ui_setting.zoom_factor,
+            KeyCode::X => velocity -= zoom * ui_setting.zoom_factor,
+            _ => (),
+        }
+    }
+
+    if let Some(mouse_pos) = window.cursor_position() {
+        if ui_setting.dragging.is_some() {
+            let prev_x = ui_setting.dragging.take().unwrap();
+            let movement = prev_x - mouse_pos.x as i32;
+            transform.translation.x += movement as f32 * DRAG_SPEED_COFACTOR * ui_setting.zoom_factor;
         }
 
-        if btn.just_pressed(MouseButton::Left) {
-            println!("Mouse click!");
+        if btn.pressed(MouseButton::Left) {
+            ui_setting.dragging = Some(mouse_pos.x as i32);
         }
+    }
 
-        if !velocity.is_nan() && velocity != Vec3::ZERO {
-            transform.translation += velocity * time.delta_seconds();
-            ev_cameramoved.send(CameraMoved);
-        }
+    if !velocity.is_nan() && velocity != Vec3::ZERO {
+        transform.translation += velocity * time.delta_seconds();
+        ev_cameramoved.send(CameraMoved);
     }
 }
 
 fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    time: Res<Time>,
-    windows: Res<Windows>,
     mut ui_setting: ResMut<UISetting>,
     mut query: Query<(&Camera, &mut Transform), With<MainCamera>>,
     mut ev_cameramoved: EventWriter<CameraMoved>,
 ) {
-    let window = windows.get_primary();
 
     let (_camera, mut transform) = query.single_mut();
 
     for event in mouse_wheel_events.iter() {
-        ui_setting.zoom_factor += -event.y;
+        ui_setting.zoom_factor -= event.y;
+        println!("Zoom Factor: {}", ui_setting.zoom_factor);
         // transform.scale += -event.y * Vec3::new(0.01, 0.00, 0.0);
         transform.scale.x += -event.y * 0.01 * transform.scale.x;
 
