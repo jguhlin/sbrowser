@@ -3,13 +3,11 @@
 
 use bevy::{prelude::*, render::camera::Camera, window::CursorMoved};
 
-use bevy_inspector_egui::Inspectable;
-
 pub struct HoverPlugin;
 impl Plugin for HoverPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(cursor_moved.system())
-            .add_system(hoverable.system())
+        app.add_system(cursor_moved)
+            .add_system(hoverable)
             .init_resource::<CursorState>();
         // app.init_resource::<CursorMovedState>();
         // .add_system_to_stage(stage::PRE_UPDATE, cursor_state.system())
@@ -26,7 +24,7 @@ pub struct CursorState {
 
 pub struct Cursor;
 
-#[derive(Inspectable, Component)]
+#[derive(Component)]
 pub struct Hoverable {
     pub is: bool,
     pub height: f32,

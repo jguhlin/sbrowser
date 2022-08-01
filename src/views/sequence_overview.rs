@@ -29,13 +29,13 @@ impl Plugin for SequenceOverviewPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_update(AppState::SequenceOverview)
-                .with_system(ui_example.system())
-                .with_system(print_events.system())
-                .with_system(menu_buttons.system()),
+                .with_system(ui_example)
+                .with_system(print_events)
+                .with_system(menu_buttons),
         )
-        .add_system_set(SystemSet::on_enter(AppState::SequenceOverview).with_system(setup.system()))
+        .add_system_set(SystemSet::on_enter(AppState::SequenceOverview).with_system(setup))
         .add_system_set(
-            SystemSet::on_exit(AppState::SequenceOverview).with_system(cleanup.system()),
+            SystemSet::on_exit(AppState::SequenceOverview).with_system(cleanup),
         );
     }
 }
@@ -126,13 +126,12 @@ fn setup(
 
             commands
                 .spawn_bundle(TextBundle {
-                    text: Text::with_section(
+                    text: Text::from_section(
                         landmark.0.to_string(),
                         text_style.clone(),
-                        text_alignment,
-                    ),
+                    ).with_alignment(text_alignment),
                     style: Style {
-                        position: Rect {
+                        position: UiRect {
                             bottom: Val::Px(0.),
                             left: Val::Px(0.),
                             ..Default::default()
@@ -199,13 +198,12 @@ fn setup(
 
             commands
                 .spawn_bundle(TextBundle {
-                    text: Text::with_section(
+                    text: Text::from_section(
                         landmark.to_string(),
                         text_style.clone(),
-                        text_alignment,
-                    ),
+                    ).with_alignment(text_alignment),
                     style: Style {
-                        position: Rect {
+                        position: UiRect {
                             bottom: Val::Px(0.),
                             left: Val::Px(0.),
                             ..Default::default()

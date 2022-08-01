@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_mod_picking::*;
-use bevy_prototype_debug_lines::*;
 use rand::prelude::*;
 use rand_xoshiro::SplitMix64;
 use rayon::prelude::*;
@@ -176,13 +175,13 @@ fn setup(
 
     let (camera, mut transform) = camera_query.single_mut();
 
-    println!("Camera: {:#?}", camera.projection_matrix);
+    println!("Camera: {:#?}", camera.projection_matrix());
     println!("Transform: {:#?}", transform);
     //*transform = transform.looking_at(Vec3::new(length as f32 / 2.0, 0., 0.), Vec3::new(0., 1., 0.));
     transform.translation = Vec3::new(length as f32 / 2.0, 0., 15.);
     println!("After Transform: {:#?}", transform);
     let x = camera
-        .projection_matrix
+        .projection_matrix()
         .transform_point3(Vec3::new(length as f32 / 2., 0., 0.));
     let scale = x.x / 15.;
     transform.scale.x = scale;
@@ -284,6 +283,71 @@ fn draw_feature(
 }
 
 fn draw_lines(
+    mut commands: Commands,
+    query: Query<(Entity, &Transform, &Collider, &ID), (With<HasLinks>, Without<DrawnLinks>)>,
+    registry: Res<EntityRegistry>,
+    bstate: Res<BrowserState>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    for (e, t, c, id) in query.iter() {
+        let links = bstate
+            .gfa
+            .as_ref()
+            .unwrap()
+            .links_atlas
+            .get(&id.id)
+            .unwrap();
+        for link in links {
+            // Only operate on the from's...
+            if link.to == id.id {
+                continue;
+            }
+
+            let mut position = t.translation;
+            position.x += c.size.x / 2.;
+            // "y" is in the middle, so leave it
+
+            let linkto = registry.registry.get(&link.to);
+            if linkto.is_none() {
+                continue;
+            }
+
+            if let Ok((te, tt, tc, tid)) = query.get(*linkto.unwrap()) {
+                let mut target_position = tt.translation;
+                target_position.x -= tc.size.x / 2.0; // Left align
+
+
+                let id = commands
+                    .spawn_bundle(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Quad {
+                            size: Vec2::new(50.0, 0.4),
+                            flip: false,
+                        })),
+                        material: materials.add(StandardMaterial {
+                            base_color: Color::YELLOW,
+                            emissive: Color::WHITE * 10.0f32,
+                            ..Default::default()
+                        }),
+                        transform: Transform {
+                            rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.), // std::f32::consts::FRAC_PI_2), // 1.5708),
+                            translation: Vec3::new(
+                                target_position.x,
+                                target_position.y,
+                                0.,
+                            ),
+                            scale: Vec3::new(1., 1., 1.),
+                        },
+                        ..default()
+                    });
+                commands.entity(e).insert(DrawnLinks);
+            }
+        }
+    }
+}
+
+/*
+fn draw_lines(
     query: Query<(Entity, &Transform, &Collider, &ID), With<HasLinks>>,
     mut lines: ResMut<DebugLines>,
     registry: Res<EntityRegistry>,
@@ -320,7 +384,7 @@ fn draw_lines(
             }
         }
     }
-}
+} */
 
 fn check_links(
     mut commands: Commands,

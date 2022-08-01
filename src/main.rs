@@ -7,11 +7,9 @@ static GLOBAL: MiMalloc = MiMalloc;
 extern crate jetscii;
 
 use bevy::{input::mouse::MouseWheel, pbr::AmbientLight, pbr::PointLightBundle, prelude::*};
-use bevy_prototype_debug_lines::*;
 
 use bevy::render::camera::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
-use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use bevy_mod_picking::*;
 
 mod core;
@@ -64,10 +62,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .insert_resource(EntityRegistry::default())
         .insert_resource(ExpansionRounds { round: 0 }) // DEBUG: Probably a temporary thing...
-        .insert_resource(WorldInspectorParams {
-            despawnable_entities: true,
-            ..Default::default()
-        })
         .add_plugin(EguiPlugin)
         .add_plugin(PickingPlugin)
         .add_plugin(InteractablePickingPlugin)
@@ -75,13 +69,11 @@ fn main() {
         .add_plugin(DebugCursorPickingPlugin)
         .add_plugin(DebugEventsPickingPlugin)
         .add_plugin(LabelPlacerPlugin)
-        .add_plugin(DebugLinesPlugin::default())
         //.add_plugin(HoverPlugin)
         .add_plugin(MenuBarPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(SequenceOverviewPlugin)
         .add_plugin(SequenceViewPlugin)
-        .add_plugin(WorldInspectorPlugin::new())
         // .add_plugin(InspectorPlugin::<Hoverable>::new())
         .add_startup_system(setup)
         // .add_startup_system(draw_chromosome.system())
@@ -108,11 +100,11 @@ fn setup(mut commands: Commands, mut ev_cameramoved: EventWriter<CameraMoved>) {
         ..Default::default()
     });
 
-     let mut camera_bundle = PerspectiveCameraBundle::default();
+     let mut camera_bundle = Camera3dBundle::default();
     camera_bundle.transform = Transform::from_xyz(0., 0., 15.)
         .looking_at(Vec3::splat(0.0), camera_bundle.transform.local_y());
 
-    commands.spawn_bundle(UiCameraBundle::default());
+    // commands.spawn_bundle(UiCameraBundle::default());
 
     commands
         .spawn_bundle(camera_bundle)

@@ -9,11 +9,11 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_update(AppState::MainMenu)
-                .with_system(ui_example.system())
-                .with_system(menu_buttons.system()),
+                .with_system(ui_example)
+                .with_system(menu_buttons),
         )
-        .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_menu.system()))
-        .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(close_menu.system()));
+        .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_menu))
+        .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(close_menu));
     }
 }
 

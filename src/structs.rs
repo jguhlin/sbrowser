@@ -28,6 +28,9 @@ pub struct DisplayDatabase {
 pub struct HasLinks;
 
 #[derive(Component)]
+pub struct DrawnLinks;
+
+#[derive(Component)]
 pub struct CheckLinks;
 
 #[derive(Component)]

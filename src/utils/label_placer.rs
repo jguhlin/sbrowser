@@ -2,13 +2,12 @@
 
 use bevy::prelude::*;
 use bevy::render::camera::*;
-use bevy_inspector_egui::Inspectable;
 
 use crate::core::states::*;
 use crate::structs::*;
 use crate::MainCamera;
 
-#[derive(Inspectable, Component)]
+#[derive(Component)]
 pub struct Label {
     placed: bool,
     belongs_to: Entity,
@@ -36,7 +35,7 @@ pub struct LabelBase;
 pub struct LabelPlacerPlugin;
 impl Plugin for LabelPlacerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(label_placer.system());
+        app.add_system(label_placer);
     }
 }
 
@@ -56,15 +55,15 @@ fn label_placer(
     if ev_cameramoved.iter().next().is_some() {
         for (camera, camera_transform) in camera_query.iter() {
             for (mut style, calculated, label, cv) in label_query.iter_mut() {
-                if !cv.is_visible {
+                if !cv.is_visible() {
                     continue
                 }
 
                 let (lb_position, cv) = lb_query.get(label.belongs_to).unwrap();
-                if !cv.is_visible {
+                if !cv.is_visible() {
                     continue
                 }
-                match camera.world_to_screen(&windows, &images, camera_transform, lb_position.translation) {  
+                match camera.world_to_viewport(camera_transform, lb_position.translation) {  
                     Some(coords) => {
                         style.position.left =
                             Val::Px(coords.x - calculated.size.width / 2.0 + label.offset.x);
